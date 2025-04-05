@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { 
@@ -18,9 +17,9 @@ serve(async (req) => {
     
     // Get request body
     const requestBody = await req.json();
-    const { paymentMethod, amount, currency = "INR", booking = {} } = requestBody;
+    const { paymentMethod, amount, currency = "INR", booking = {}, isLiveMode = true } = requestBody;
     
-    console.log(`Payment details: method=${paymentMethod}, amount=${amount}, currency=${currency}`);
+    console.log(`Payment details: method=${paymentMethod}, amount=${amount}, currency=${currency}, mode=${isLiveMode ? 'LIVE' : 'TEST'}`);
     console.log("Booking details:", JSON.stringify(booking));
     
     // Create Supabase client
@@ -50,7 +49,7 @@ serve(async (req) => {
     let paymentResponse;
     
     if (paymentMethod === "razorpay") {
-      console.log("Creating Razorpay order");
+      console.log(`Creating Razorpay order in ${isLiveMode ? 'LIVE' : 'TEST'} mode`);
       
       // Generate a random receipt ID
       const receiptId = `receipt_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
@@ -59,7 +58,8 @@ serve(async (req) => {
       const notes = {
         booking_id: booking.id || "",
         user_id: user.id,
-        salon_name: booking.salonName || "Salon Booking"
+        salon_name: booking.salonName || "Salon Booking",
+        mode: isLiveMode ? "live" : "test"
       };
       
       console.log("Creating Razorpay order with notes:", JSON.stringify(notes));
@@ -73,7 +73,8 @@ serve(async (req) => {
         status: "pending",
         orderId: orderData.id,
         amount: amount,
-        keyId: orderData.key_id
+        keyId: orderData.key_id,
+        isLiveMode: isLiveMode
       };
     } 
     else if (paymentMethod === "plyn_coins") {

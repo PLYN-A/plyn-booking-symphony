@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 declare global {
@@ -161,7 +160,8 @@ export const createRazorpayOrder = async (
       body: JSON.stringify({
         paymentMethod,
         amount,
-        booking
+        booking,
+        isLiveMode: true // Signal that we want to use live mode
       })
     });
     

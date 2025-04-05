@@ -24,7 +24,7 @@ export const RAZORPAY_LIVE_KEY_ID = "rzp_live_pcOKGFEhj2J7EA";
 export const RAZORPAY_LIVE_SECRET_KEY = "o1K4gTXbhjXKndBAGaROkKzm";
 
 // Function to get the appropriate Razorpay keys based on environment
-export const getRazorpayKeys = (isProduction = false) => {
+export const getRazorpayKeys = (isProduction = true) => {  // Changed default to true
   return {
     keyId: isProduction ? RAZORPAY_LIVE_KEY_ID : RAZORPAY_TEST_KEY_ID,
     secretKey: isProduction ? RAZORPAY_LIVE_SECRET_KEY : RAZORPAY_TEST_SECRET_KEY
@@ -33,7 +33,7 @@ export const getRazorpayKeys = (isProduction = false) => {
 
 // Helper function to create a Razorpay order
 export async function createRazorpayOrder(amount: number, currency: string, receipt: string, notes: Record<string, string>) {
-  const { keyId, secretKey } = getRazorpayKeys(false); // Use test credentials for now
+  const { keyId, secretKey } = getRazorpayKeys(true);  // Using live credentials
   const razorpayOrderUrl = "https://api.razorpay.com/v1/orders";
   
   console.log(`Creating Razorpay order for amount: ${amount} ${currency}, receipt: ${receipt}`);
@@ -90,7 +90,7 @@ export async function createRazorpayOrder(amount: number, currency: string, rece
 
 // Helper function to verify a Razorpay payment
 export async function verifyRazorpayPayment(orderId: string, razorpayPaymentId?: string, razorpaySignature?: string) {
-  const { keyId, secretKey } = getRazorpayKeys(false); // Use test credentials for now
+  const { keyId, secretKey } = getRazorpayKeys(true);  // Using live credentials
   
   try {
     console.log(`Verifying Razorpay payment. OrderID: ${orderId}, PaymentID: ${razorpayPaymentId}, Signature: ${razorpaySignature ? "provided" : "not provided"}`);
