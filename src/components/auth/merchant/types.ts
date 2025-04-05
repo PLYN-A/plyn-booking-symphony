@@ -2,7 +2,7 @@
 import { z } from 'zod';
 
 // Payment details schema
-const paymentDetailsSchema = z.object({
+export const paymentDetailsSchema = z.object({
   accountName: z.string().min(3, 'Account name is required'),
   accountNumber: z.string().min(9, 'Valid account number is required'),
   ifscCode: z.string().min(11, 'Valid IFSC code is required'),

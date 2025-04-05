@@ -145,7 +145,7 @@ export const useMerchantSignup = () => {
       if (values.paymentDetails) {
         // Use raw insert since the table may not be in types.ts yet
         const { error: paymentError } = await supabase
-          .from('merchant_payment_details')
+          .from('merchant_payment_details' as any)
           .insert({
             merchant_id: authData.user.id,
             account_name: values.paymentDetails.accountName,

@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
-import { PaymentDetailsFormValues } from '@/components/auth/merchant/types';
+import { PaymentDetailsFormValues, paymentDetailsSchema } from '@/components/auth/merchant/types';
 
 interface PaymentDetailsFormProps {
   onSubmit: (values: PaymentDetailsFormValues) => Promise<void>;
@@ -36,9 +36,6 @@ const PaymentDetailsForm: React.FC<PaymentDetailsFormProps> = ({
     resolver: zodResolver(paymentDetailsSchema),
     defaultValues,
   });
-
-  // Import the schema for validation
-  const paymentDetailsSchema = form.formState.resolver.schema;
 
   return (
     <Card className="w-full">
