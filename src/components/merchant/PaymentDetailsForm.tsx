@@ -1,6 +1,5 @@
 
 import React from 'react';
-import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -15,15 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
-
-const paymentDetailsSchema = z.object({
-  accountName: z.string().min(3, 'Account name is required'),
-  accountNumber: z.string().min(9, 'Valid account number is required'),
-  ifscCode: z.string().min(11, 'Valid IFSC code is required'),
-  upiId: z.string().optional(),
-});
-
-export type PaymentDetailsFormValues = z.infer<typeof paymentDetailsSchema>;
+import { PaymentDetailsFormValues } from '@/components/auth/merchant/types';
 
 interface PaymentDetailsFormProps {
   onSubmit: (values: PaymentDetailsFormValues) => Promise<void>;
@@ -45,6 +36,9 @@ const PaymentDetailsForm: React.FC<PaymentDetailsFormProps> = ({
     resolver: zodResolver(paymentDetailsSchema),
     defaultValues,
   });
+
+  // Import the schema for validation
+  const paymentDetailsSchema = form.formState.resolver.schema;
 
   return (
     <Card className="w-full">

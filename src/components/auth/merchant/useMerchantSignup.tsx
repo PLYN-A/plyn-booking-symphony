@@ -143,6 +143,7 @@ export const useMerchantSignup = () => {
       
       // If payment details are provided, save them
       if (values.paymentDetails) {
+        // Use raw insert since the table may not be in types.ts yet
         const { error: paymentError } = await supabase
           .from('merchant_payment_details')
           .insert({
@@ -158,7 +159,7 @@ export const useMerchantSignup = () => {
           toast({
             title: "Payment Details Not Saved",
             description: "Your account was created but we couldn't save your payment details. You can update them later.",
-            variant: "warning"
+            variant: "destructive"
           });
         }
       }
