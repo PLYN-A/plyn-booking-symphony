@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, LogOut, User, Calendar, Layout } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import ThemeToggle from '@/components/ui/theme-toggle';
 import { Button } from '@/components/ui/button';
@@ -13,7 +14,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, User, Calendar, Layout } from 'lucide-react';
 import { AnimatedButton } from '@/components/ui/AnimatedButton';
 import LogoAnimation from '@/components/ui/LogoAnimation';
 import NavLink from '@/components/layout/NavLink';
@@ -26,7 +26,7 @@ const navLinks = [
   { label: 'Find Salons', path: '/book-now' },
   { label: 'Hair Recommendation', path: '/hair-recommendation' },
   { label: 'My Bookings', path: '/my-bookings' },
-  { label: 'For Merchants', path: '/merchant-login' },  // Update this link to point to merchant login
+  { label: 'For Merchants', path: '/merchant-login' },
 ];
 
 export const ProfileDropdown = ({ user, onLogout }: { user: any; onLogout: () => void }) => {
@@ -123,7 +123,9 @@ const Navbar = () => {
           <div className="flex items-center space-x-2">
             {user ? (
               <>
-                <NotificationsPopover />
+                <div className="hidden sm:block">
+                  <NotificationsPopover />
+                </div>
                 <ProfileDropdown user={user} onLogout={handleLogout} />
               </>
             ) : (
@@ -150,42 +152,92 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* Mobile menu */}
-      <div className={`md:hidden fixed left-0 top-16 w-full bg-background border-b border-border z-50 transition-all duration-300 ${mobileMenuOpen ? 'translate-y-0' : '-translate-y-full'}`}>
-        <nav className="flex flex-col p-4 space-y-2">
-          {navLinks.map((link) => (
-            <NavLink
-              key={link.path}
-              to={link.path}
-              className="block py-2 px-4 rounded-md hover:bg-accent hover:text-accent-foreground"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              {link.label}
-            </NavLink>
-          ))}
-          {user ? (
-            <>
-              <Link
-                to="/profile"
-                className="block py-2 px-4 rounded-md hover:bg-accent hover:text-accent-foreground"
+      {/* Mobile menu - fixed positioning with animation */}
+      <div 
+        className={`md:hidden fixed inset-0 top-16 bg-background z-40 transform transition-transform duration-300 ease-in-out ${
+          mobileMenuOpen ? 'translate-y-0' : '-translate-y-full'
+        }`}
+      >
+        <nav className="h-full flex flex-col p-4 overflow-y-auto">
+          <div className="space-y-2 mb-6">
+            {navLinks.map((link) => (
+              <NavLink
+                key={link.path}
+                to={link.path}
+                className="block w-full py-3 px-4 text-base rounded-md hover:bg-accent hover:text-accent-foreground"
                 onClick={() => setMobileMenuOpen(false)}
               >
+                {link.label}
+              </NavLink>
+            ))}
+          </div>
+          
+          {user ? (
+            <div className="space-y-3 mt-auto border-t border-border pt-4">
+              <NavLink
+                to="/profile"
+                className="flex items-center py-3 px-4 text-base rounded-md hover:bg-accent hover:text-accent-foreground"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <User className="mr-3 h-5 w-5" />
                 Profile
-              </Link>
-              <Button variant="outline" size="sm" className="w-full justify-start" onClick={handleLogout}>
-                <LogOut className="mr-2 h-4 w-4" />
+              </NavLink>
+              <NavLink
+                to="/my-bookings"
+                className="flex items-center py-3 px-4 text-base rounded-md hover:bg-accent hover:text-accent-foreground"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <Calendar className="mr-3 h-5 w-5" />
+                My Bookings
+              </NavLink>
+              {user.is_merchant && (
+                <NavLink
+                  to="/merchant-dashboard"
+                  className="flex items-center py-3 px-4 text-base rounded-md hover:bg-accent hover:text-accent-foreground"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <Layout className="mr-3 h-5 w-5" />
+                  Merchant Dashboard
+                </NavLink>
+              )}
+              <Button 
+                variant="destructive" 
+                size="lg" 
+                className="w-full justify-start mt-4" 
+                onClick={() => {
+                  handleLogout();
+                  setMobileMenuOpen(false);
+                }}
+              >
+                <LogOut className="mr-3 h-5 w-5" />
                 Log out
               </Button>
-            </>
+            </div>
           ) : (
-            <>
-              <Button variant="default" size="sm" className="w-full" onClick={() => navigate('/auth')}>
+            <div className="space-y-3 mt-auto border-t border-border pt-4">
+              <Button 
+                variant="default" 
+                size="lg" 
+                className="w-full" 
+                onClick={() => {
+                  navigate('/auth');
+                  setMobileMenuOpen(false);
+                }}
+              >
                 Sign In
               </Button>
-              <Button variant="outline" size="sm" className="w-full justify-start" onClick={() => navigate('/merchant-login')}>
+              <Button 
+                variant="outline" 
+                size="lg" 
+                className="w-full" 
+                onClick={() => {
+                  navigate('/merchant-login');
+                  setMobileMenuOpen(false);
+                }}
+              >
                 For Merchants
               </Button>
-            </>
+            </div>
           )}
         </nav>
       </div>
