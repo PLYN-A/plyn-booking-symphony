@@ -117,6 +117,47 @@ export type Database = {
           },
         ]
       }
+      merchant_payment_details: {
+        Row: {
+          account_name: string
+          account_number: string
+          created_at: string
+          id: string
+          ifsc_code: string
+          merchant_id: string
+          updated_at: string
+          upi_id: string | null
+        }
+        Insert: {
+          account_name: string
+          account_number: string
+          created_at?: string
+          id?: string
+          ifsc_code: string
+          merchant_id: string
+          updated_at?: string
+          upi_id?: string | null
+        }
+        Update: {
+          account_name?: string
+          account_number?: string
+          created_at?: string
+          id?: string
+          ifsc_code?: string
+          merchant_id?: string
+          updated_at?: string
+          upi_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merchant_payment_details_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       merchant_settings: {
         Row: {
           break_end: string | null
@@ -199,40 +240,52 @@ export type Database = {
       }
       payments: {
         Row: {
+          admin_commission: number
           amount: number
           booking_id: string | null
           coins_earned: number
           coins_used: number
           created_at: string | null
           id: string
+          merchant_amount: number
+          merchant_id: string | null
           payment_method: string
           payment_status: string
+          platform_fee: number
           transaction_id: string | null
           updated_at: string | null
           user_id: string | null
         }
         Insert: {
+          admin_commission?: number
           amount: number
           booking_id?: string | null
           coins_earned?: number
           coins_used?: number
           created_at?: string | null
           id?: string
+          merchant_amount?: number
+          merchant_id?: string | null
           payment_method: string
           payment_status?: string
+          platform_fee?: number
           transaction_id?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
         Update: {
+          admin_commission?: number
           amount?: number
           booking_id?: string | null
           coins_earned?: number
           coins_used?: number
           created_at?: string | null
           id?: string
+          merchant_amount?: number
+          merchant_id?: string | null
           payment_method?: string
           payment_status?: string
+          platform_fee?: number
           transaction_id?: string | null
           updated_at?: string | null
           user_id?: string | null
@@ -243,6 +296,13 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants"
             referencedColumns: ["id"]
           },
         ]

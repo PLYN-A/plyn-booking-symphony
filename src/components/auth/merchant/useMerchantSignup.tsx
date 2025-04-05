@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { MerchantSignupFormValues } from './types';
 
@@ -139,6 +139,28 @@ export const useMerchantSignup = () => {
       if (profileError) {
         console.error("Error updating profile merchant status:", profileError);
         // Non-blocking error, continue with the flow
+      }
+      
+      // If payment details are provided, save them
+      if (values.paymentDetails) {
+        const { error: paymentError } = await supabase
+          .from('merchant_payment_details')
+          .insert({
+            merchant_id: authData.user.id,
+            account_name: values.paymentDetails.accountName,
+            account_number: values.paymentDetails.accountNumber,
+            ifsc_code: values.paymentDetails.ifscCode,
+            upi_id: values.paymentDetails.upiId || null
+          });
+          
+        if (paymentError) {
+          console.error("Error saving payment details:", paymentError);
+          toast({
+            title: "Payment Details Not Saved",
+            description: "Your account was created but we couldn't save your payment details. You can update them later.",
+            variant: "warning"
+          });
+        }
       }
       
       // Always redirect to the pending page

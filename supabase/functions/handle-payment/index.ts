@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { 
@@ -44,6 +45,16 @@ serve(async (req) => {
 
     console.log(`Authenticated user: ${user.id}`);
     console.log(`Processing payment for method: ${paymentMethod}, amount: ${amount}`);
+
+    // Get merchant ID if applicable
+    let merchantId = null;
+    if (booking.merchant_id) {
+      merchantId = booking.merchant_id;
+    } else if (booking.salonId) {
+      merchantId = booking.salonId;
+    }
+    
+    console.log(`Merchant ID for payment: ${merchantId || 'Not specified'}`);
 
     // Handle different payment methods
     let paymentResponse;
@@ -104,7 +115,8 @@ serve(async (req) => {
       amount: amount,
       payment_status: paymentResponse.status,
       transaction_id: paymentResponse.paymentId,
-      coins_used: paymentResponse.coinsUsed || 0
+      coins_used: paymentResponse.coinsUsed || 0,
+      merchant_id: merchantId
     };
     
     if (booking.id) {
@@ -130,7 +142,10 @@ serve(async (req) => {
           success: true,
           payment: {
             ...paymentResponse,
-            dbId: paymentRecord.id
+            dbId: paymentRecord.id,
+            platformFee: paymentRecord.platform_fee,
+            adminCommission: paymentRecord.admin_commission,
+            merchantAmount: paymentRecord.merchant_amount
           }
         }),
         { 

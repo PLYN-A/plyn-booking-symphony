@@ -64,7 +64,7 @@ export const ProfileDropdown = ({ user, onLogout }: { user: any; onLogout: () =>
           <Calendar className="mr-2 h-4 w-4" />
           <span>My Bookings</span>
         </DropdownMenuItem>
-        {user.is_merchant && (
+        {user.isMerchant && (
           <DropdownMenuItem onClick={() => navigate('/merchant-dashboard')}>
             <Layout className="mr-2 h-4 w-4" />
             <span>Merchant Dashboard</span>
@@ -151,7 +151,6 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* Mobile menu - fixed positioning with improved z-index */}
       <div 
         className={`md:hidden fixed inset-0 top-16 bg-background z-[100] transform transition-transform duration-300 ease-in-out ${
           mobileMenuOpen ? 'translate-y-0' : '-translate-y-full'
@@ -189,7 +188,7 @@ const Navbar = () => {
                 <Calendar className="mr-3 h-5 w-5" />
                 My Bookings
               </NavLink>
-              {user.is_merchant && (
+              {user.isMerchant && (
                 <NavLink
                   to="/merchant-dashboard"
                   className="flex items-center py-3 px-4 text-base rounded-md hover:bg-accent hover:text-accent-foreground"
