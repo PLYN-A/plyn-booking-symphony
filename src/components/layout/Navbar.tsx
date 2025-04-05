@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Menu, X, LogOut, User, Calendar, Layout } from 'lucide-react';
@@ -152,9 +151,9 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* Mobile menu - fixed positioning with animation */}
+      {/* Mobile menu - fixed positioning with improved z-index */}
       <div 
-        className={`md:hidden fixed inset-0 top-16 bg-background z-40 transform transition-transform duration-300 ease-in-out ${
+        className={`md:hidden fixed inset-0 top-16 bg-background z-[100] transform transition-transform duration-300 ease-in-out ${
           mobileMenuOpen ? 'translate-y-0' : '-translate-y-full'
         }`}
       >
