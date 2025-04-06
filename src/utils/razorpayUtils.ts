@@ -49,7 +49,7 @@ export const openRazorpayCheckout = (
   console.log('Booking details:', bookingDetails);
   
   // Calculate platform fee and display amounts
-  const platformFee = 2; // Fixed platform fee
+  const platformFee = bookingDetails.platformFee || 2; // Fixed platform fee
   const adminCommission = amount * 0.01; // 1% of the total amount
   const totalAmount = amount + platformFee; // Include platform fee in the total amount displayed
   
@@ -155,7 +155,7 @@ export const createRazorpayOrder = async (
   booking: any
 ) => {
   try {
-    const platformFee = 2; // Fixed platform fee of ₹2
+    const platformFee = booking.platformFee || 2; // Fixed platform fee of ₹2
     const totalAmount = amount + platformFee; // Include platform fee in amount
     
     console.log(`Creating ${paymentMethod} order for amount: ${amount} + platform fee: ${platformFee} = ${totalAmount}`);

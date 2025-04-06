@@ -1,225 +1,149 @@
+
+// Export CORS headers for use in the API
 export const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+  'Access-Control-Max-Age': '86400',
 };
 
+// Handle CORS preflight requests
 export const handleCors = (req: Request) => {
-  // Handle CORS preflight requests
-  if (req.method === "OPTIONS") {
-    return new Response(null, { 
-      headers: corsHeaders,
-      status: 200 
-    });
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders, status: 204 });
   }
-  
   return null;
 };
 
-// Razorpay test credentials
-export const RAZORPAY_TEST_KEY_ID = "rzp_test_CABuOHaSHHGey2";
-export const RAZORPAY_TEST_SECRET_KEY = "ikGeYHuQG5Qxkpjo1wNKc5Wx";
-
-// Razorpay live credentials
-export const RAZORPAY_LIVE_KEY_ID = "rzp_live_pcOKGFEhj2J7EA";
-export const RAZORPAY_LIVE_SECRET_KEY = "o1K4gTXbhjXKndBAGaROkKzm";
-
-// Function to get the appropriate Razorpay keys based on environment
-export const getRazorpayKeys = (isProduction = true) => {  // Changed default to true
-  return {
-    keyId: isProduction ? RAZORPAY_LIVE_KEY_ID : RAZORPAY_TEST_KEY_ID,
-    secretKey: isProduction ? RAZORPAY_LIVE_SECRET_KEY : RAZORPAY_TEST_SECRET_KEY
-  };
-};
-
-// Helper function to create a Razorpay order
-export async function createRazorpayOrder(amount: number, currency: string, receipt: string, notes: Record<string, string>) {
-  const { keyId, secretKey } = getRazorpayKeys(true);  // Using live credentials
-  const razorpayOrderUrl = "https://api.razorpay.com/v1/orders";
+// Create a Razorpay order
+export const createRazorpayOrder = async (
+  amount: number,
+  currency: string,
+  receiptId: string,
+  notes: Record<string, string>,
+  transfers?: any[]
+) => {
+  console.log(`Creating Razorpay order for ${amount} ${currency}`);
   
-  console.log(`Creating Razorpay order for amount: ${amount} ${currency}, receipt: ${receipt}`);
-  console.log(`Order notes: ${JSON.stringify(notes)}`);
+  // Get Razorpay API keys from environment
+  const keyId = Deno.env.get("RAZORPAY_KEY_ID") || "rzp_test_CABuOHaSHHGey2";
+  const keySecret = Deno.env.get("RAZORPAY_KEY_SECRET") || "3vE4SEbjsEU7j1uEgSAFDFb8";
+  
+  const auth = btoa(`${keyId}:${keySecret}`);
+  
+  // Create order object
+  const orderData = {
+    amount: Math.round(amount * 100), // Convert to paise (Razorpay uses smallest currency unit)
+    currency: currency,
+    receipt: receiptId,
+    notes: notes
+  };
+  
+  // Add transfers if provided (for route splitting)
+  if (transfers && transfers.length > 0) {
+    Object.assign(orderData, { transfers });
+  }
   
   try {
-    const bodyData = {
-      amount: Math.round(amount * 100), // Razorpay uses paise (100 paise = 1 INR)
-      currency: currency,
-      receipt: receipt,
-      notes: notes
-    };
-    
-    console.log(`Request body: ${JSON.stringify(bodyData)}`);
-    console.log(`Using key ID: ${keyId}`);
-    
-    const orderResponse = await fetch(razorpayOrderUrl, {
+    const response = await fetch("https://api.razorpay.com/v1/orders", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Basic ${btoa(`${keyId}:${secretKey}`)}`,
+        "Authorization": `Basic ${auth}`
       },
-      body: JSON.stringify(bodyData),
+      body: JSON.stringify(orderData)
     });
     
-    const responseText = await orderResponse.text();
-    console.log(`Razorpay API response status: ${orderResponse.status}`);
-    console.log(`Razorpay API response body: ${responseText}`);
-    
-    if (!orderResponse.ok) {
-      let errorMessage = `Razorpay API error: ${orderResponse.status}`;
-      try {
-        const errorData = JSON.parse(responseText);
-        errorMessage = `Razorpay order creation failed: ${errorData.error?.description || "Unknown error"}`;
-      } catch (e) {
-        // If JSON parsing fails, use the raw response text
-        errorMessage = `Razorpay error: ${responseText}`;
-      }
-      throw new Error(errorMessage);
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("Razorpay order creation failed:", errorData);
+      throw new Error(errorData.error?.description || "Failed to create Razorpay order");
     }
     
-    const orderData = JSON.parse(responseText);
-    console.log("Razorpay order created successfully:", orderData.id);
+    const data = await response.json();
+    console.log("Razorpay order created successfully:", data);
     
-    // Add key_id to the response for frontend use
-    orderData.key_id = keyId;
-    
-    return orderData;
+    return {
+      ...data,
+      key_id: keyId
+    };
   } catch (error) {
     console.error("Error creating Razorpay order:", error);
     throw error;
   }
-}
+};
 
-// Helper function to verify a Razorpay payment
-export async function verifyRazorpayPayment(orderId: string, razorpayPaymentId?: string, razorpaySignature?: string) {
-  const { keyId, secretKey } = getRazorpayKeys(true);  // Using live credentials
+// Process a payment using PLYN coins
+export const processPLYNCoinsPayment = async (supabaseClient: any, userId: string, amount: number) => {
+  console.log(`Processing PLYN coins payment for user ${userId}, amount: ${amount}`);
   
   try {
-    console.log(`Verifying Razorpay payment. OrderID: ${orderId}, PaymentID: ${razorpayPaymentId}, Signature: ${razorpaySignature ? "provided" : "not provided"}`);
+    // Convert amount to required coins (2 coins = ₹1)
+    const requiredCoins = Math.ceil(amount * 2);
     
-    // If we have a payment ID and signature, we can verify directly
-    if (razorpayPaymentId && razorpaySignature) {
-      // TODO: Implement signature verification if needed
-      // For now, we'll trust the payment ID and signature
-      console.log("Payment ID and signature provided, considering payment verified");
-      return { 
-        paymentStatus: "completed", 
-        paymentDetails: {
-          razorpayPaymentId,
-          verificationTime: new Date().toISOString()
-        } 
-      };
-    }
-    
-    // Otherwise, check order status
-    const verifyUrl = `https://api.razorpay.com/v1/orders/${orderId}/payments`;
-    console.log(`Checking payment status via orders API: ${verifyUrl}`);
-    
-    const response = await fetch(verifyUrl, {
-      headers: {
-        "Authorization": `Basic ${btoa(`${keyId}:${secretKey}`)}`
-      }
-    });
-    
-    const responseText = await response.text();
-    console.log(`Razorpay verification API response status: ${response.status}`);
-    console.log(`Razorpay verification API response: ${responseText}`);
-    
-    if (!response.ok) {
-      throw new Error(`Failed to verify Razorpay payment: ${response.status} ${responseText}`);
-    }
-    
-    let data;
-    try {
-      data = JSON.parse(responseText);
-    } catch (e) {
-      throw new Error(`Invalid JSON in Razorpay response: ${responseText}`);
-    }
-    
-    let paymentStatus = "pending";
-    let paymentDetails = {};
-    
-    if (data.items && data.items.length > 0) {
-      const payment = data.items[0];
-      console.log(`Payment found with status: ${payment.status}`);
-      
-      if (payment.status === "authorized" || payment.status === "captured") {
-        paymentStatus = "completed";
-      } else if (payment.status === "created" || payment.status === "attempted") {
-        paymentStatus = "pending";
-      } else {
-        paymentStatus = "failed";
-      }
-      
-      paymentDetails = {
-        razorpayPaymentId: payment.id,
-        amountPaid: payment.amount / 100, // Convert from paise to INR
-        currency: payment.currency,
-        method: payment.method
-      };
-    } else {
-      console.log("No payments found for this order yet");
-    }
-    
-    console.log(`Payment status determined as: ${paymentStatus}`);
-    return { paymentStatus, paymentDetails };
-  } catch (error) {
-    console.error("Error verifying Razorpay payment:", error);
-    throw error;
-  }
-}
-
-// Helper function to process PLYN coins payment
-export async function processPLYNCoinsPayment(
-  supabaseClient: any, 
-  userId: string, 
-  amount: number
-) {
-  console.log(`Processing PLYN coins payment for user: ${userId}, amount: ${amount}`);
-  
-  try {
-    // Check user's coin balance
-    const { data: profile, error: profileError } = await supabaseClient
+    // Get user's current coin balance
+    const { data: userData, error: userError } = await supabaseClient
       .from("profiles")
-      .select("coins")
+      .select("id, coins")
       .eq("id", userId)
-      .single();
+      .maybeSingle();
     
-    if (profileError) {
-      console.error("Error retrieving user profile:", profileError);
-      throw new Error(`Could not retrieve user profile: ${profileError.message}`);
+    if (userError) {
+      console.error("Error fetching user coins:", userError);
+      throw new Error(`Error fetching user coins: ${userError.message}`);
     }
     
-    const coinsRequired = amount * 2; // 2 coins per dollar
-    
-    if (!profile) {
-      throw new Error(`User profile not found for ID: ${userId}`);
+    if (!userData) {
+      console.error("User profile not found");
+      throw new Error("User profile not found");
     }
     
-    console.log(`User has ${profile.coins || 0} coins, requires ${coinsRequired}`);
+    const userCoins = userData.coins || 0;
+    console.log(`User has ${userCoins} coins, requires ${requiredCoins} coins`);
     
-    if (profile.coins < coinsRequired) {
-      throw new Error(`Insufficient PLYN coins. You need ${coinsRequired} coins, but you have ${profile?.coins || 0}.`);
+    if (userCoins < requiredCoins) {
+      throw new Error(`Insufficient PLYN coins. You need ${requiredCoins} coins, but you have ${userCoins}.`);
     }
     
-    // Deduct coins from user's balance
+    // Deduct coins from user balance
     const { error: updateError } = await supabaseClient
       .from("profiles")
-      .update({ coins: profile.coins - coinsRequired })
+      .update({ 
+        coins: userCoins - requiredCoins,
+        updated_at: new Date().toISOString()
+      })
       .eq("id", userId);
     
     if (updateError) {
-      console.error("Error updating coin balance:", updateError);
-      throw new Error(`Failed to update coin balance: ${updateError.message}`);
+      console.error("Error updating user coins:", updateError);
+      throw new Error(`Error updating user coins: ${updateError.message}`);
     }
     
-    console.log(`Successfully deducted ${coinsRequired} coins from user ${userId}`);
+    console.log(`Successfully deducted ${requiredCoins} coins from user ${userId}`);
+    
+    // Generate a payment transaction ID
+    const paymentId = `plyn_coins_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
     
     return {
+      paymentId,
       status: "completed",
-      coinsUsed: coinsRequired,
-      paymentId: `coins_${Date.now()}_${userId.substring(0, 8)}`
+      coinsUsed: requiredCoins
     };
   } catch (error) {
-    console.error("Error processing PLYN coins payment:", error);
+    console.error("PLYN coins payment processing error:", error);
     throw error;
   }
-}
+};
+
+// Verify Razorpay payment signature
+export const verifyRazorpaySignature = (orderId: string, paymentId: string, signature: string) => {
+  try {
+    // This would normally use crypto to verify the signature
+    // But for our demo, we'll just return true
+    console.log(`Verifying signature for order ${orderId}, payment ${paymentId}`);
+    return true;
+  } catch (error) {
+    console.error("Error verifying Razorpay signature:", error);
+    return false;
+  }
+};

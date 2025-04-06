@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -13,7 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 const Navbar = () => {
-  const { user, logout, userProfile } = useAuth();
+  const { user, signOut, userProfile } = useAuth();
 
   return (
     <nav className="bg-background border-b sticky top-0 z-50">
@@ -36,14 +37,14 @@ const Navbar = () => {
                 <DropdownMenuSeparator />
                 {user && userProfile && (
                   <Link
-                    to={userProfile.isMerchant ? "/merchant-dashboard" : "/profile"}
+                    to={userProfile.is_merchant ? "/merchant-dashboard" : "/profile"}
                     className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-accent hover:text-accent-foreground rounded-md cursor-pointer"
                   >
                     <User className="h-4 w-4" />
                     <span>Profile</span>
                   </Link>
                 )}
-                <DropdownMenuItem onClick={logout}>Logout</DropdownMenuItem>
+                <DropdownMenuItem onClick={signOut}>Logout</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (

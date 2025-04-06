@@ -206,7 +206,8 @@ const Payment = () => {
         currentBookingId = bookingResult.id;
       }
       
-      const totalWithPlatformFee = state.totalPrice + 2; // ₹2 platform fee
+      const platformFee = 2; // ₹2 platform fee
+      const totalWithPlatformFee = state.totalPrice + platformFee;
       
       const bookingDetails = {
         id: currentBookingId,
@@ -221,12 +222,12 @@ const Payment = () => {
         totalDuration: state.totalDuration,
         email: state.email,
         phone: state.phone,
-        platformFee: 2
+        platformFee: platformFee
       };
       
       await processPayment({
         paymentMethod,
-        amount: state.totalPrice,
+        amount: state.totalPrice, // Base amount without platform fee
         currency: 'INR',
         booking: bookingDetails
       });
@@ -248,6 +249,8 @@ const Payment = () => {
   const formattedDate = state.date 
     ? format(new Date(state.date), "EEEE, MMMM d, yyyy")
     : "Unknown date";
+
+  const totalWithPlatformFee = state.totalPrice + 2; // Adding ₹2 platform fee
 
   return (
     <PageTransition>
@@ -306,7 +309,9 @@ const Payment = () => {
                   {paymentMethod === 'plyn_coins' && (
                     <p>Using {calculateCoinsUsed()} coins ({userCoins} available)</p>
                   )}
-                  <p>Total Amount: ${state.totalPrice}</p>
+                  <p>Services Total: ₹{state.totalPrice.toFixed(2)}</p>
+                  <p>Platform Fee: ₹2.00</p>
+                  <p className="font-medium">Total Amount: ₹{totalWithPlatformFee.toFixed(2)}</p>
                   
                   <div className="flex gap-4 pt-4">
                     <Button 
@@ -335,9 +340,9 @@ const Payment = () => {
               services={state.services}
               date={formattedDate}
               timeSlot={state.timeSlot}
-              totalPrice={state.totalPrice + 2} // Include platform fee
+              totalPrice={totalWithPlatformFee} // Include platform fee in the display
               totalDuration={state.totalDuration}
-              platformFee={2}
+              platformFee={2} // Explicitly pass the platform fee
             />
           </div>
         </div>

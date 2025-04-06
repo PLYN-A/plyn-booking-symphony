@@ -62,6 +62,27 @@ serve(async (req) => {
     }
     
     console.log(`Merchant ID for payment: ${merchantId || 'Not specified'}`);
+    
+    // Get merchant payment details for route splitting if applicable
+    let merchantRazorpayAccountId = null;
+    if (merchantId) {
+      try {
+        const { data: merchantPaymentDetails, error: merchantError } = await supabaseClient
+          .from('merchant_payment_details')
+          .select('account_id')
+          .eq('merchant_id', merchantId)
+          .maybeSingle();
+          
+        if (!merchantError && merchantPaymentDetails?.account_id) {
+          merchantRazorpayAccountId = merchantPaymentDetails.account_id;
+          console.log(`Found merchant Razorpay account ID: ${merchantRazorpayAccountId}`);
+        } else {
+          console.log(`No Razorpay account ID found for merchant ${merchantId}`);
+        }
+      } catch (e) {
+        console.error(`Error fetching merchant payment details: ${e.message}`);
+      }
+    }
 
     // Calculate payment distribution
     const adminCommission = (amount - platformFee) * 0.01; // 1% of the base amount (excluding platform fee)
@@ -92,8 +113,31 @@ serve(async (req) => {
       
       console.log("Creating Razorpay order with notes:", JSON.stringify(notes));
       
+      // Set up transfers object for route splitting if merchant has Razorpay account
+      let transfers = undefined;
+      if (merchantRazorpayAccountId) {
+        transfers = [
+          {
+            account: merchantRazorpayAccountId,
+            amount: Math.round(merchantAmount * 100), // Convert to paise
+            currency: currency,
+            notes: {
+              purpose: "Salon booking payout"
+            }
+          }
+        ];
+        console.log("Setting up transfers for route splitting:", JSON.stringify(transfers));
+      }
+      
       // Create order in Razorpay
-      const orderData = await createRazorpayOrder(amount, currency, receiptId, notes);
+      const orderData = await createRazorpayOrder(
+        amount, 
+        currency, 
+        receiptId, 
+        notes, 
+        transfers
+      );
+      
       console.log("Razorpay order created:", JSON.stringify(orderData));
       
       paymentResponse = { 

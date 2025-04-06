@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 const MerchantSignupForm = () => {
   const { isLoading, error, handleSignup } = useMerchantSignup();
   const [currentTab, setCurrentTab] = useState('account');
+  const [paymentFormSubmitted, setPaymentFormSubmitted] = useState(false);
 
   const form = useForm<MerchantSignupFormValues>({
     resolver: zodResolver(merchantSignupSchema),
@@ -39,6 +40,12 @@ const MerchantSignupForm = () => {
 
   const onSubmit = async (values: MerchantSignupFormValues) => {
     await handleSignup(values);
+  };
+
+  const handlePaymentFormSubmit = (paymentValues: any) => {
+    form.setValue('paymentDetails', paymentValues);
+    setPaymentFormSubmitted(true);
+    setCurrentTab('business');
   };
 
   return (
@@ -102,10 +109,7 @@ const MerchantSignupForm = () => {
             
             <div className="space-y-4">
               <PaymentDetailsForm 
-                onSubmit={async (paymentValues) => {
-                  form.setValue('paymentDetails', paymentValues);
-                  setCurrentTab('business');
-                }}
+                onSubmit={handlePaymentFormSubmit}
                 isSubmitting={false}
                 defaultValues={form.getValues().paymentDetails}
               />
@@ -126,7 +130,12 @@ const MerchantSignupForm = () => {
         
         {currentTab !== 'payment' && (
           <div className="pt-4 border-t mt-6">
-            <SubmitButton isLoading={isLoading} />
+            <SubmitButton isLoading={isLoading} disabled={!paymentFormSubmitted} />
+            {!paymentFormSubmitted && currentTab !== 'payment' && (
+              <p className="text-sm text-muted-foreground mt-2">
+                Please fill payment details before submitting
+              </p>
+            )}
           </div>
         )}
       </form>
