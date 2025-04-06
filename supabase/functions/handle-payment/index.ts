@@ -18,9 +18,16 @@ serve(async (req) => {
     
     // Get request body
     const requestBody = await req.json();
-    const { paymentMethod, amount, currency = "INR", booking = {}, isLiveMode = true } = requestBody;
+    const { 
+      paymentMethod, 
+      amount, 
+      platformFee = 2.0,
+      currency = "INR", 
+      booking = {}, 
+      isLiveMode = true 
+    } = requestBody;
     
-    console.log(`Payment details: method=${paymentMethod}, amount=${amount}, currency=${currency}, mode=${isLiveMode ? 'LIVE' : 'TEST'}`);
+    console.log(`Payment details: method=${paymentMethod}, amount=${amount}, platformFee=${platformFee}, currency=${currency}, mode=${isLiveMode ? 'LIVE' : 'TEST'}`);
     console.log("Booking details:", JSON.stringify(booking));
     
     // Create Supabase client
@@ -56,6 +63,12 @@ serve(async (req) => {
     
     console.log(`Merchant ID for payment: ${merchantId || 'Not specified'}`);
 
+    // Calculate payment distribution
+    const adminCommission = (amount - platformFee) * 0.01; // 1% of the base amount (excluding platform fee)
+    const merchantAmount = amount - platformFee - adminCommission;
+    
+    console.log(`Payment distribution: Total=${amount}, PlatformFee=${platformFee}, AdminCommission=${adminCommission}, MerchantAmount=${merchantAmount}`);
+
     // Handle different payment methods
     let paymentResponse;
     
@@ -65,11 +78,15 @@ serve(async (req) => {
       // Generate a random receipt ID
       const receiptId = `receipt_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
       
-      // Set up notes for the order
+      // Set up notes for the order including payment splits
       const notes = {
         booking_id: booking.id || "",
         user_id: user.id,
         salon_name: booking.salonName || "Salon Booking",
+        merchant_id: merchantId || "",
+        platform_fee: platformFee.toString(),
+        admin_commission: adminCommission.toString(),
+        merchant_amount: merchantAmount.toString(),
         mode: isLiveMode ? "live" : "test"
       };
       
@@ -85,21 +102,27 @@ serve(async (req) => {
         orderId: orderData.id,
         amount: amount,
         keyId: orderData.key_id,
-        isLiveMode: isLiveMode
+        isLiveMode: isLiveMode,
+        platformFee: platformFee,
+        adminCommission: adminCommission,
+        merchantAmount: merchantAmount
       };
     } 
     else if (paymentMethod === "plyn_coins") {
       console.log("Processing PLYN Coins payment");
       
       // Process PLYN Coins payment
-      const coinsPayment = await processPLYNCoinsPayment(supabaseClient, user.id, amount);
+      const coinsPayment = await processPLYNCoinsPayment(supabaseClient, user.id, amount - platformFee);
       
       // Create payment record
       paymentResponse = {
         paymentId: coinsPayment.paymentId,
         status: coinsPayment.status,
         amount: amount,
-        coinsUsed: coinsPayment.coinsUsed
+        coinsUsed: coinsPayment.coinsUsed,
+        platformFee: platformFee,
+        adminCommission: adminCommission,
+        merchantAmount: merchantAmount
       };
     } 
     else {
@@ -116,7 +139,10 @@ serve(async (req) => {
       payment_status: paymentResponse.status,
       transaction_id: paymentResponse.paymentId,
       coins_used: paymentResponse.coinsUsed || 0,
-      merchant_id: merchantId
+      merchant_id: merchantId,
+      platform_fee: platformFee,
+      admin_commission: adminCommission,
+      merchant_amount: merchantAmount
     };
     
     if (booking.id) {

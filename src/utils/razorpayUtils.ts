@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 declare global {
@@ -47,12 +48,17 @@ export const openRazorpayCheckout = (
   console.log(`Opening Razorpay checkout for order: ${orderId}, amount: ${amount}, keyId: ${keyId}`);
   console.log('Booking details:', bookingDetails);
   
+  // Calculate platform fee and display amounts
+  const platformFee = 2; // Fixed platform fee
+  const adminCommission = amount * 0.01; // 1% of the total amount
+  const totalAmount = amount + platformFee; // Include platform fee in the total amount displayed
+  
   const options = {
     key: keyId,
-    amount: amount * 100, // Convert to paise
+    amount: totalAmount * 100, // Convert to paise and include platform fee
     currency: bookingDetails.currency || 'INR',
     name: 'Salon Booking',
-    description: 'Payment for salon services',
+    description: `Payment for salon services + ₹${platformFee} platform fee`,
     order_id: orderId,
     handler: function(response: any) {
       console.log('Razorpay payment successful:', response);
@@ -62,6 +68,13 @@ export const openRazorpayCheckout = (
       name: bookingDetails.customerName || '',
       email: bookingDetails.email || '',
       contact: bookingDetails.phone || ''
+    },
+    notes: {
+      merchant_id: bookingDetails.merchant_id || '',
+      platform_fee: platformFee.toString(),
+      admin_commission: adminCommission.toString(),
+      merchant_amount: (amount - adminCommission).toString(),
+      total_amount: totalAmount.toString()
     },
     theme: {
       color: '#3498db'
@@ -142,7 +155,10 @@ export const createRazorpayOrder = async (
   booking: any
 ) => {
   try {
-    console.log(`Creating ${paymentMethod} order for amount: ${amount}`);
+    const platformFee = 2; // Fixed platform fee of ₹2
+    const totalAmount = amount + platformFee; // Include platform fee in amount
+    
+    console.log(`Creating ${paymentMethod} order for amount: ${amount} + platform fee: ${platformFee} = ${totalAmount}`);
     console.log('Booking details:', booking);
     
     const session = await supabase.auth.getSession();
@@ -159,8 +175,12 @@ export const createRazorpayOrder = async (
       },
       body: JSON.stringify({
         paymentMethod,
-        amount,
-        booking,
+        amount: totalAmount, // Send the total amount including platform fee
+        platformFee,
+        booking: {
+          ...booking,
+          totalPrice: totalAmount // Update the total price to include platform fee
+        },
         isLiveMode: true // Signal that we want to use live mode
       })
     });

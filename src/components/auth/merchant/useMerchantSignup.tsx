@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { MerchantSignupFormValues } from './types';
+import { MerchantSignupFormValues, PaymentDetailsFormValues } from './types';
 
 export const useMerchantSignup = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -143,7 +143,7 @@ export const useMerchantSignup = () => {
       
       // If payment details are provided, save them
       if (values.paymentDetails) {
-        // Use raw insert since the table may not be in types.ts yet
+        // Use type assertion since the table might not be in types.ts yet
         const { error: paymentError } = await supabase
           .from('merchant_payment_details' as any)
           .insert({
@@ -161,7 +161,11 @@ export const useMerchantSignup = () => {
             description: "Your account was created but we couldn't save your payment details. You can update them later.",
             variant: "destructive"
           });
+        } else {
+          console.log("Payment details saved successfully");
         }
+      } else {
+        console.log("No payment details provided, skipping payment details insertion");
       }
       
       // Always redirect to the pending page

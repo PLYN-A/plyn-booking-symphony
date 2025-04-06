@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -51,14 +50,12 @@ const Payment = () => {
 
   const state = location.state as PaymentState;
   
-  // Redirect if no state is provided
   useEffect(() => {
     if (!state?.salonId) {
       navigate('/book');
     }
   }, [state, navigate]);
 
-  // Load Razorpay script and fetch user coins
   useEffect(() => {
     loadRazorpayScript();
     
@@ -102,7 +99,6 @@ const Payment = () => {
     return 0;
   };
 
-  // Create booking record
   const createBookingRecord = async () => {
     if (!user) {
       toast({
@@ -123,7 +119,6 @@ const Payment = () => {
     }
     
     try {
-      // Verify slot availability
       const { data: slot, error: slotError } = await supabase
         .from('slots')
         .select('is_booked, worker_id')
@@ -145,7 +140,6 @@ const Payment = () => {
         throw new Error('This time slot has already been booked. Please select another time.');
       }
       
-      // Book the slot (mark as booked)
       try {
         await bookSlot(
           state.slotId,
@@ -160,7 +154,6 @@ const Payment = () => {
         throw new Error(`Failed to book slot: ${bookError.message}`);
       }
       
-      // Create booking record, but status remains 'pending' until payment is confirmed
       const bookingData = {
         user_id: user.id,
         merchant_id: state.salonId,
@@ -173,7 +166,7 @@ const Payment = () => {
         customer_email: state.email,
         customer_phone: state.phone || '',
         additional_notes: state.notes || '',
-        status: 'pending', // Will be updated to 'confirmed' after payment
+        status: 'pending',
         slot_id: state.slotId,
         worker_id: state.workerId || slot.worker_id || null
       };
@@ -202,7 +195,6 @@ const Payment = () => {
     }
 
     try {
-      // Create booking if not already created
       let currentBookingId = bookingId;
       if (!isBookingCreated) {
         const bookingResult = await createBookingRecord();
@@ -214,7 +206,8 @@ const Payment = () => {
         currentBookingId = bookingResult.id;
       }
       
-      // Process payment based on selected method
+      const totalWithPlatformFee = state.totalPrice + 2; // ₹2 platform fee
+      
       const bookingDetails = {
         id: currentBookingId,
         user_id: user.id,
@@ -224,9 +217,11 @@ const Payment = () => {
         date: state.date,
         timeSlot: state.timeSlot,
         totalPrice: state.totalPrice,
+        totalWithPlatformFee: totalWithPlatformFee,
         totalDuration: state.totalDuration,
         email: state.email,
-        phone: state.phone
+        phone: state.phone,
+        platformFee: 2
       };
       
       await processPayment({
@@ -247,7 +242,7 @@ const Payment = () => {
   };
 
   if (!state) {
-    return null; // Don't render anything if no state is provided
+    return null;
   }
 
   const formattedDate = state.date 
@@ -340,8 +335,9 @@ const Payment = () => {
               services={state.services}
               date={formattedDate}
               timeSlot={state.timeSlot}
-              totalPrice={state.totalPrice}
+              totalPrice={state.totalPrice + 2} // Include platform fee
               totalDuration={state.totalDuration}
+              platformFee={2}
             />
           </div>
         </div>
