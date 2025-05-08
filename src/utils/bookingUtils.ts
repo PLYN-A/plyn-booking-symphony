@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 export const fetchUserBookings = async (userId: string) => {
@@ -104,5 +105,56 @@ export const cancelBookingAndRefund = async (bookingId: string) => {
   } catch (error: any) {
     console.error('Error cancelling booking and refunding:', error);
     return { success: false, message: error.message || 'Failed to cancel booking and refund.' };
+  }
+};
+
+// Add the missing functions needed by BookingForm.tsx and Payment.tsx
+export const checkSlotAvailability = async (slotId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('slots')
+      .select('is_booked')
+      .eq('id', slotId)
+      .single();
+    
+    if (error) throw error;
+    
+    return !data.is_booked;
+  } catch (error) {
+    console.error('Error checking slot availability:', error);
+    throw error;
+  }
+};
+
+export const bookSlot = async (slotId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('slots')
+      .update({ is_booked: true })
+      .eq('id', slotId)
+      .select();
+    
+    if (error) throw error;
+    
+    return data;
+  } catch (error) {
+    console.error('Error booking slot:', error);
+    throw error;
+  }
+};
+
+export const createBooking = async (bookingData: any) => {
+  try {
+    const { data, error } = await supabase
+      .from('bookings')
+      .insert(bookingData)
+      .select();
+    
+    if (error) throw error;
+    
+    return data[0];
+  } catch (error) {
+    console.error('Error creating booking:', error);
+    throw error;
   }
 };

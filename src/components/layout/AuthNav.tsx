@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
@@ -34,7 +35,7 @@ const AuthNav = () => {
       
       window.localStorage.removeItem('supabase.auth.token');
       navigate('/auth', { replace: true });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error signing out:', error);
       toast({
         title: "Sign out failed",
