@@ -13,23 +13,39 @@ import { Calendar, Timer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Worker } from '@/types/admin';
 import SlotExtender from '../SlotExtender';
+import useWorkerSchedule from '@/hooks/useWorkerSchedule';
 
 interface WorkerDayScheduleProps {
   worker: Worker;
   date: Date;
-  appointments: any[];
   loading: boolean;
+  merchantId: string;
+  isActive?: boolean;
+  allWorkers?: Worker[];
   onReallocate?: (appointment: any) => void;
 }
 
 const WorkerDaySchedule: React.FC<WorkerDayScheduleProps> = ({
   worker,
   date,
-  appointments,
   loading,
+  merchantId,
+  isActive = true,
+  allWorkers = [],
   onReallocate
 }) => {
   const [isReallocateOpen, setIsReallocateOpen] = useState(false);
+  
+  // Use the custom hook to get appointments and other data
+  const { 
+    appointments,
+    loading: appointmentsLoading,
+    handleReallocate
+  } = useWorkerSchedule({
+    workerId: worker.id,
+    date,
+    merchantId
+  });
   
   // Handler for slot extension completion
   const handleSlotExtended = () => {
@@ -51,7 +67,7 @@ const WorkerDaySchedule: React.FC<WorkerDayScheduleProps> = ({
       </CardHeader>
       
       <CardContent className="pb-3">
-        {loading ? (
+        {loading || appointmentsLoading ? (
           <div className="py-8 flex justify-center">
             <div className="animate-spin w-8 h-8 border-2 border-primary rounded-full border-t-transparent"></div>
           </div>
@@ -94,7 +110,7 @@ const WorkerDaySchedule: React.FC<WorkerDayScheduleProps> = ({
                   
                   <SlotExtender
                     slotId={appointment.id}
-                    merchantId={worker.merchant_id}
+                    merchantId={merchantId}
                     date={format(date, 'yyyy-MM-dd')}
                     currentEndTime={appointment.end_time}
                     workerId={worker.id}

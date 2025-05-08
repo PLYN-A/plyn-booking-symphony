@@ -1,28 +1,36 @@
 
 import React from 'react';
-import { AnimatedButton } from '@/components/ui/AnimatedButton';
+import { Button } from "@/components/ui/button";
+import { Loader2 } from 'lucide-react';
 
-interface SubmitButtonProps {
+export interface SubmitButtonProps {
   isLoading: boolean;
+  disabled?: boolean;
+  text?: string;
+  loadingText?: string;
 }
 
-const SubmitButton: React.FC<SubmitButtonProps> = ({ isLoading }) => {
+const SubmitButton: React.FC<SubmitButtonProps> = ({
+  isLoading,
+  disabled = false,
+  text = "Submit Application",
+  loadingText = "Submitting..."
+}) => {
   return (
-    <>
-      <AnimatedButton
-        variant="gradient"
-        type="submit"
-        className="w-full mt-6 bg-gradient-to-r from-salon-men to-salon-men-dark"
-        disabled={isLoading}
-      >
-        {isLoading ? 'Creating Account...' : 'Submit Merchant Application'}
-      </AnimatedButton>
-      
-      <p className="text-xs text-muted-foreground text-center mt-4">
-        By submitting this application, you agree to our terms and conditions. 
-        Your application will be reviewed by our admin team.
-      </p>
-    </>
+    <Button 
+      type="submit" 
+      className="w-full" 
+      disabled={isLoading || disabled}
+    >
+      {isLoading ? (
+        <>
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          {loadingText}
+        </>
+      ) : (
+        text
+      )}
+    </Button>
   );
 };
 

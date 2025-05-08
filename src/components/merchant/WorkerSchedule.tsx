@@ -68,7 +68,6 @@ const WorkerSchedule: React.FC<WorkerScheduleProps> = ({ merchantId }) => {
               {workers.map((worker) => (
                 <TabsContent key={worker.id} value={worker.id} className="pt-4">
                   <WorkerDaySchedule
-                    workerId={worker.id}
                     worker={worker}
                     date={date}
                     merchantId={merchantId}

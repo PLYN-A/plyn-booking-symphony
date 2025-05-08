@@ -8,13 +8,13 @@ import { useMerchantSignup } from './merchant/useMerchantSignup';
 import PersonalInfoFields from './merchant/PersonalInfoFields';
 import BusinessInfoFields from './merchant/BusinessInfoFields';
 import PasswordFields from './merchant/PasswordFields';
-import SubmitButton from './merchant/SubmitButton';
+import SubmitButton from './auth/SubmitButton';
 import ErrorAlert from './merchant/ErrorAlert';
 import PaymentDetailsForm from '@/components/merchant/PaymentDetailsForm';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const MerchantSignupForm = () => {
-  const { isLoading, error, handleSignup } = useMerchantSignup();
+  const { loading, error, handleSubmit: handleMerchantSignup } = useMerchantSignup();
   const [currentTab, setCurrentTab] = useState('account');
   const [paymentFormSubmitted, setPaymentFormSubmitted] = useState(false);
 
@@ -39,13 +39,14 @@ const MerchantSignupForm = () => {
   });
 
   const onSubmit = async (values: MerchantSignupFormValues) => {
-    await handleSignup(values);
+    await handleMerchantSignup(values);
   };
 
-  const handlePaymentFormSubmit = (paymentValues: any) => {
+  const handlePaymentFormSubmit = async (paymentValues: any) => {
     form.setValue('paymentDetails', paymentValues);
     setPaymentFormSubmitted(true);
     setCurrentTab('business');
+    return Promise.resolve();
   };
 
   return (
@@ -123,14 +124,14 @@ const MerchantSignupForm = () => {
               >
                 Back
               </button>
-              <SubmitButton isLoading={isLoading} />
+              <SubmitButton isLoading={loading} />
             </div>
           </TabsContent>
         </Tabs>
         
         {currentTab !== 'payment' && (
           <div className="pt-4 border-t mt-6">
-            <SubmitButton isLoading={isLoading} disabled={!paymentFormSubmitted} />
+            <SubmitButton isLoading={loading} />
             {!paymentFormSubmitted && currentTab !== 'payment' && (
               <p className="text-sm text-muted-foreground mt-2">
                 Please fill payment details before submitting
