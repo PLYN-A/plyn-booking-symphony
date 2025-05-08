@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -9,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar, ChevronLeft, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import PageTransition from '@/components/transitions/PageTransition';
+import UserSlotExtender from '@/components/booking/UserSlotExtender';
 
 const MyBookings = () => {
   const navigate = useNavigate();
@@ -67,6 +69,24 @@ const MyBookings = () => {
         description: 'Failed to cancel your booking. Please try again.',
         variant: 'destructive',
       });
+    }
+  };
+
+  // Handle booking extension completion
+  const handleExtensionComplete = async () => {
+    if (!user) return;
+    
+    try {
+      // Refresh bookings to show updated information
+      const updatedBookings = await fetchUserBookings(user.id);
+      setBookings(updatedBookings);
+      
+      toast({
+        title: 'Booking Extended',
+        description: 'Your booking has been successfully extended.',
+      });
+    } catch (error: any) {
+      console.error('Error refreshing bookings:', error);
     }
   };
 
@@ -159,7 +179,13 @@ const MyBookings = () => {
                         </div>
                         
                         {(['pending', 'confirmed'].includes(booking.status)) && (
-                          <div className="mt-4 flex justify-end">
+                          <div className="mt-4 flex justify-end gap-2">
+                            <UserSlotExtender 
+                              bookingId={booking.id}
+                              currentEndTime={booking.end_time || "18:00"} // Fallback if end time not available
+                              date={booking.booking_date}
+                              onExtensionComplete={handleExtensionComplete}
+                            />
                             <Button
                               variant="outline"
                               size="sm"
