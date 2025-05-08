@@ -117,53 +117,28 @@ export type Database = {
           },
         ]
       }
-      merchant_payment_details: {
-        Row: {
-          account_name: string
-          account_number: string
-          created_at: string
-          id: string
-          ifsc_code: string
-          merchant_id: string
-          updated_at: string
-          upi_id: string | null
-        }
-        Insert: {
-          account_name: string
-          account_number: string
-          created_at?: string
-          id?: string
-          ifsc_code: string
-          merchant_id: string
-          updated_at?: string
-          upi_id?: string | null
-        }
-        Update: {
-          account_name?: string
-          account_number?: string
-          created_at?: string
-          id?: string
-          ifsc_code?: string
-          merchant_id?: string
-          updated_at?: string
-          upi_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "merchant_payment_details_merchant_id_fkey"
-            columns: ["merchant_id"]
-            isOneToOne: false
-            referencedRelation: "merchants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       merchant_settings: {
         Row: {
+          account_holder_name: string | null
+          account_number: string | null
+          bank_name: string | null
+          branch: string | null
+          branch_name: string | null
           break_end: string | null
           break_start: string | null
+          business_email: string | null
+          business_phone: string | null
+          business_type: string | null
+          confirm_account_number: number | null
+          contact_name: string | null
           created_at: string
+          gst: string | null
+          ifsc_code: string | null
+          legal_business_name: string | null
           merchant_id: string
+          pan: string | null
+          razorpay_id: string | null
+          registered_address: Json | null
           total_workers: number
           updated_at: string
           worker_assignment_strategy: string
@@ -171,10 +146,26 @@ export type Database = {
           working_hours_start: string
         }
         Insert: {
+          account_holder_name?: string | null
+          account_number?: string | null
+          bank_name?: string | null
+          branch?: string | null
+          branch_name?: string | null
           break_end?: string | null
           break_start?: string | null
+          business_email?: string | null
+          business_phone?: string | null
+          business_type?: string | null
+          confirm_account_number?: number | null
+          contact_name?: string | null
           created_at?: string
+          gst?: string | null
+          ifsc_code?: string | null
+          legal_business_name?: string | null
           merchant_id: string
+          pan?: string | null
+          razorpay_id?: string | null
+          registered_address?: Json | null
           total_workers?: number
           updated_at?: string
           worker_assignment_strategy?: string
@@ -182,10 +173,26 @@ export type Database = {
           working_hours_start?: string
         }
         Update: {
+          account_holder_name?: string | null
+          account_number?: string | null
+          bank_name?: string | null
+          branch?: string | null
+          branch_name?: string | null
           break_end?: string | null
           break_start?: string | null
+          business_email?: string | null
+          business_phone?: string | null
+          business_type?: string | null
+          confirm_account_number?: number | null
+          contact_name?: string | null
           created_at?: string
+          gst?: string | null
+          ifsc_code?: string | null
+          legal_business_name?: string | null
           merchant_id?: string
+          pan?: string | null
+          razorpay_id?: string | null
+          registered_address?: Json | null
           total_workers?: number
           updated_at?: string
           worker_assignment_strategy?: string
@@ -210,6 +217,7 @@ export type Database = {
           business_phone: string
           created_at: string
           id: string
+          razorpay_id: string | null
           service_category: string
           status: string
           updated_at: string
@@ -221,6 +229,7 @@ export type Database = {
           business_phone: string
           created_at?: string
           id?: string
+          razorpay_id?: string | null
           service_category: string
           status?: string
           updated_at?: string
@@ -232,6 +241,7 @@ export type Database = {
           business_phone?: string
           created_at?: string
           id?: string
+          razorpay_id?: string | null
           service_category?: string
           status?: string
           updated_at?: string
@@ -540,16 +550,25 @@ export type Database = {
     }
     Functions: {
       insert_merchant_record: {
-        Args: {
-          user_id: string
-          b_name: string
-          b_address: string
-          b_email: string
-          b_phone: string
-          s_category: string
-          merchant_status?: string
-        }
-        Returns: Json
+        Args:
+          | {
+              user_id: string
+              b_name: string
+              b_address: string
+              b_email: string
+              b_phone: string
+              s_category: string
+              merchant_status?: string
+            }
+          | {
+              user_id: string
+              business_name: string
+              business_email: string
+              business_phone: string
+              business_address: string
+              service_category: string
+            }
+        Returns: undefined
       }
     }
     Enums: {
@@ -561,27 +580,29 @@ export type Database = {
   }
 }
 
-type PublicSchema = Database[Extract<keyof Database, "public">]
+type DefaultSchema = Database[Extract<keyof Database, "public">]
 
 export type Tables<
-  PublicTableNameOrOptions extends
-    | keyof (PublicSchema["Tables"] & PublicSchema["Views"])
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
-        Database[PublicTableNameOrOptions["schema"]]["Views"])
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
-      Database[PublicTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
     : never
-  : PublicTableNameOrOptions extends keyof (PublicSchema["Tables"] &
-        PublicSchema["Views"])
-    ? (PublicSchema["Tables"] &
-        PublicSchema["Views"])[PublicTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
         Row: infer R
       }
       ? R
@@ -589,20 +610,22 @@ export type Tables<
     : never
 
 export type TablesInsert<
-  PublicTableNameOrOptions extends
-    | keyof PublicSchema["Tables"]
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
     | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
     : never
-  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
-    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Insert: infer I
       }
       ? I
@@ -610,20 +633,22 @@ export type TablesInsert<
     : never
 
 export type TablesUpdate<
-  PublicTableNameOrOptions extends
-    | keyof PublicSchema["Tables"]
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
     | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
     : never
-  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
-    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Update: infer U
       }
       ? U
@@ -631,21 +656,23 @@ export type TablesUpdate<
     : never
 
 export type Enums<
-  PublicEnumNameOrOptions extends
-    | keyof PublicSchema["Enums"]
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
     | { schema: keyof Database },
-  EnumName extends PublicEnumNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicEnumNameOrOptions["schema"]]["Enums"]
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
-> = PublicEnumNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : PublicEnumNameOrOptions extends keyof PublicSchema["Enums"]
-    ? PublicSchema["Enums"][PublicEnumNameOrOptions]
+> = DefaultSchemaEnumNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof PublicSchema["CompositeTypes"]
+    | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof Database },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof Database
@@ -654,6 +681,12 @@ export type CompositeTypes<
     : never = never,
 > = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
   ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof PublicSchema["CompositeTypes"]
-    ? PublicSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
+
+export const Constants = {
+  public: {
+    Enums: {},
+  },
+} as const

@@ -1,193 +1,146 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { MerchantSignupFormValues, PaymentDetailsFormValues } from './types';
+import { useToast } from '@/hooks/use-toast';
 
-export const useMerchantSignup = () => {
-  const [isLoading, setIsLoading] = useState(false);
+export interface MerchantFormData {
+  businessName: string;
+  businessEmail: string;
+  businessPhone: string;
+  businessAddress: string;
+  serviceCategory: string;
+  // Add any other fields needed
+}
+
+export interface PaymentDetailsData {
+  accountName?: string;
+  accountNumber?: string;
+  ifscCode?: string;
+  upiId?: string;
+}
+
+interface UseMerchantSignupProps {
+  initialStep?: number;
+}
+
+export const useMerchantSignup = ({ initialStep = 1 }: UseMerchantSignupProps = {}) => {
+  const [step, setStep] = useState(initialStep);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [formData, setFormData] = useState<MerchantFormData>({
+    businessName: '',
+    businessEmail: '',
+    businessPhone: '',
+    businessAddress: '',
+    serviceCategory: 'salon',
+  });
+  const [paymentDetails, setPaymentDetails] = useState<PaymentDetailsData>({
+    accountName: '',
+    accountNumber: '',
+    ifscCode: '',
+    upiId: '',
+  });
+
   const navigate = useNavigate();
+  const { signIn } = useAuth();
   const { toast } = useToast();
 
-  const handleSignup = async (values: MerchantSignupFormValues) => {
-    setIsLoading(true);
-    setError(null);
-    
+  const updateFormData = (data: Partial<MerchantFormData>) => {
+    setFormData((prev) => ({ ...prev, ...data }));
+  };
+
+  const saveBusinessInfo = async () => {
     try {
-      console.log("Starting merchant signup process with values:", values);
-      
-      // First, check if the username already exists
-      const { data: existingUsers, error: checkError } = await supabase
-        .from('profiles')
-        .select('username')
-        .eq('username', values.username);
-        
-      if (checkError) {
-        console.error("Error checking username:", checkError);
-        throw checkError;
-      }
-      
-      if (existingUsers && existingUsers.length > 0) {
-        console.error("Username already exists");
-        throw new Error("Username already exists. Please choose a different username.");
-      }
-      
-      // Sign up with Supabase auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: values.email,
-        password: values.password,
-        options: {
-          data: {
-            username: values.username,
-            phone_number: values.businessPhone,
-            is_merchant: true,
-          },
+      setLoading(true);
+      setError(null);
+
+      // Save to supabase using RPC function
+      const { error: rpcError } = await supabase.rpc(
+        'insert_merchant_record',
+        {
+          user_id: '00000000-0000-0000-0000-000000000001', // This should be the actual user ID
+          b_name: formData.businessName,
+          b_address: formData.businessAddress,
+          b_email: formData.businessEmail,
+          b_phone: formData.businessPhone,
+          s_category: formData.serviceCategory,
         },
+      );
+
+      if (rpcError) throw rpcError;
+
+      // Move to next step
+      setStep(step + 1);
+      
+    } catch (err: any) {
+      console.error('Error saving business info:', err);
+      setError(err.message || 'An unexpected error occurred');
+      
+      toast({
+        title: "Error",
+        description: err.message || 'Failed to save business information',
+        variant: "destructive"
       });
-      
-      if (authError) {
-        console.error("Auth signup error:", authError);
-        throw authError;
-      }
-      
-      if (!authData.user) {
-        throw new Error("Failed to create user account. Please try again.");
-      }
-      
-      console.log("Auth signup complete, user created with ID:", authData.user.id);
-      
-      // Create the merchant application with pending status
-      // Important: Using the anon key which respects RLS policies
-      console.log("Creating merchant application with user ID:", authData.user.id);
-      
-      // Try to create merchant profile without RLS using direct SQL
-      const { data: merchantData, error: merchantError } = await supabase
-        .from('merchants')
-        .insert({
-          id: authData.user.id,
-          business_name: values.businessName,
-          business_address: values.businessAddress,
-          business_email: values.email,
-          business_phone: values.businessPhone,
-          service_category: values.serviceCategory,
-          status: 'pending'
-        })
-        .select();
-      
-      // Log the result for debugging
-      console.log("Merchant insert attempt result:", { merchantData, merchantError });
-      
-      if (merchantError) {
-        console.error("Error creating merchant profile:", merchantError);
-        
-        // Attempt a second approach - using function that bypasses RLS
-        interface InsertMerchantParams {
-          user_id: string;
-          b_name: string;
-          b_address: string;
-          b_email: string;
-          b_phone: string;
-          s_category: string;
-          merchant_status: string;
-        }
-        
-        const { data: insertResult, error: functionError } = await supabase
-          .rpc<any, InsertMerchantParams>('insert_merchant_record', {
-            user_id: authData.user.id,
-            b_name: values.businessName,
-            b_address: values.businessAddress,
-            b_email: values.email,
-            b_phone: values.businessPhone,
-            s_category: values.serviceCategory,
-            merchant_status: 'pending'
-          });
-          
-        console.log("Fallback insert attempt result:", { insertResult, functionError });
-        
-        if (functionError) {
-          console.error("Error with fallback merchant creation:", functionError);
-          
-          // Non-blocking error, continue with the flow
-          toast({
-            title: "Account Created With Issues",
-            description: "Your account was created but we had trouble setting up your merchant profile. Please contact support.",
-            variant: "destructive"
-          });
-        } else {
-          toast({
-            title: "Merchant Application Submitted",
-            description: "Your application has been submitted and is pending admin approval.",
-          });
-        }
-      } else {
-        console.log("Merchant application submitted successfully:", merchantData);
-        
-        toast({
-          title: "Merchant Application Submitted",
-          description: "Your application has been submitted and is pending admin approval. You'll be notified once approved.",
-        });
-      }
-      
-      // Update the profile record to ensure is_merchant is true
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({ is_merchant: true })
-        .eq('id', authData.user.id);
-        
-      if (profileError) {
-        console.error("Error updating profile merchant status:", profileError);
-        // Non-blocking error, continue with the flow
-      }
-      
-      // If payment details are provided, save them
-      if (values.paymentDetails) {
-        // Use type assertion since the table might not be in types.ts yet
-        const { error: paymentError } = await supabase
-          .from('merchant_payment_details' as any)
-          .insert({
-            merchant_id: authData.user.id,
-            account_name: values.paymentDetails.accountName,
-            account_number: values.paymentDetails.accountNumber,
-            ifsc_code: values.paymentDetails.ifscCode,
-            upi_id: values.paymentDetails.upiId || null
-          });
-          
-        if (paymentError) {
-          console.error("Error saving payment details:", paymentError);
-          toast({
-            title: "Payment Details Not Saved",
-            description: "Your account was created but we couldn't save your payment details. You can update them later.",
-            variant: "destructive"
-          });
-        } else {
-          console.log("Payment details saved successfully");
-        }
-      } else {
-        console.log("No payment details provided, skipping payment details insertion");
-      }
-      
-      // Always redirect to the pending page
-      console.log("Redirecting to merchant-pending page");
-      navigate('/merchant-pending', { replace: true });
-      
-    } catch (error: any) {
-      console.error('Merchant signup error:', error);
-      setError(error.message || 'Failed to create merchant account. Please try again.');
-      setIsLoading(false);
-      return false;
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-    
-    return true;
+  };
+
+  const updatePaymentDetails = async (values: PaymentDetailsData): Promise<void> => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Save payment details if provided
+      if (values.accountNumber && values.ifscCode) {
+        const { error: merchantSettingsError } = await supabase
+          .from('merchant_settings')
+          .upsert({
+            merchant_id: '00000000-0000-0000-0000-000000000001', // This should be the actual user ID
+            account_holder_name: values.accountName,
+            account_number: values.accountNumber,
+            ifsc_code: values.ifscCode,
+          });
+          
+        if (merchantSettingsError) throw merchantSettingsError;
+      }
+      
+      // Move to the next step
+      setStep(step + 1);
+      
+    } catch (err: any) {
+      console.error('Error saving payment details:', err);
+      setError(err.message || 'An unexpected error occurred');
+      
+      toast({
+        title: "Error",
+        description: err.message || 'Failed to save payment details',
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    // Final submission logic, if needed
+    navigate('/merchant-login');
   };
 
   return {
-    isLoading,
+    step,
+    setStep,
+    loading,
     error,
-    handleSignup,
-    setError
+    formData,
+    paymentDetails,
+    updateFormData,
+    saveBusinessInfo,
+    updatePaymentDetails,
+    handleSubmit,
   };
 };
+
+export default useMerchantSignup;

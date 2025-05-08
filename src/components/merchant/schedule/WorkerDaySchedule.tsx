@@ -1,151 +1,116 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { format } from 'date-fns';
-import { Clock, UserCheck2 } from 'lucide-react';
-import { TabsContent } from '@/components/ui/tabs';
 import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
+  Card, 
+  CardContent, 
+  CardFooter, 
+  CardHeader, 
+  CardTitle 
+} from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import useWorkerSchedule from '@/hooks/useWorkerSchedule';
-import ReallocationDialog from './ReallocationDialog';
+import { Calendar, Timer } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Worker } from '@/types/admin';
+import SlotExtender from '../SlotExtender';
 
 interface WorkerDayScheduleProps {
-  workerId: string;
   worker: Worker;
   date: Date;
-  merchantId: string;
-  isActive: boolean;
+  appointments: any[];
   loading: boolean;
-  allWorkers: Worker[];
+  onReallocate?: (appointment: any) => void;
 }
 
 const WorkerDaySchedule: React.FC<WorkerDayScheduleProps> = ({
-  workerId,
   worker,
   date,
-  merchantId,
-  isActive,
+  appointments,
   loading,
-  allWorkers
+  onReallocate
 }) => {
-  const { 
-    appointments, 
-    isReallocateDialogOpen, 
-    selectedAppointment,
-    confirmDialogOpen,
-    reallocateLoading,
-    handleReallocate,
-    confirmReallocate,
-    executeReallocate,
-    setIsReallocateDialogOpen,
-    setConfirmDialogOpen
-  } = useWorkerSchedule({
-    workerId,
-    date,
-    merchantId
-  });
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'confirmed':
-        return <Badge className="bg-green-500">Confirmed</Badge>;
-      case 'completed':
-        return <Badge className="bg-blue-500">Completed</Badge>;
-      case 'cancelled':
-        return <Badge className="bg-red-500">Cancelled</Badge>;
-      case 'pending':
-      default:
-        return <Badge className="bg-yellow-500">Pending</Badge>;
-    }
-  };
+  const [isReallocateOpen, setIsReallocateOpen] = useState(false);
   
+  // Handler for slot extension completion
+  const handleSlotExtended = () => {
+    // This would typically refresh the worker's schedule data
+    // but we'll rely on external refresh for now
+  };
+
   return (
-    <>
-      <TabsContent value={workerId} className="pt-4">
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium">
-              {worker.name}'s Schedule
-              {worker.specialty && (
-                <span className="text-sm text-muted-foreground ml-2">({worker.specialty})</span>
-              )}
-            </h3>
-            <div className="text-sm text-muted-foreground">
-              {format(date, 'EEEE, MMMM d, yyyy')}
-            </div>
-          </div>
-          
-          {loading ? (
-            <div className="text-center py-8">Loading schedule...</div>
-          ) : appointments?.length ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Time</TableHead>
-                  <TableHead>Duration</TableHead>
-                  <TableHead>Service</TableHead>
-                  <TableHead>Client</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {appointments?.map((appointment) => (
-                  <TableRow key={appointment.id}>
-                    <TableCell>
-                      <div className="flex items-center">
-                        <Clock className="h-4 w-4 mr-2" />
-                        {appointment.time_slot} - {appointment.end_time}
-                      </div>
-                    </TableCell>
-                    <TableCell>{appointment.service_duration} mins</TableCell>
-                    <TableCell>{appointment.service_name}</TableCell>
-                    <TableCell>{appointment.customer_name}</TableCell>
-                    <TableCell>{getStatusBadge(appointment.status)}</TableCell>
-                    <TableCell>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        className="flex items-center gap-1"
-                        onClick={() => handleReallocate(appointment)}
-                      >
-                        <UserCheck2 className="h-3 w-3" /> 
-                        Reallocate
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              No appointments scheduled for {worker.name} on this day.
-            </div>
-          )}
+    <Card className="h-full">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-lg flex justify-between items-center">
+          {worker.name}
+          <Badge variant="outline">{worker.specialty || 'Stylist'}</Badge>
+        </CardTitle>
+        <div className="text-sm text-muted-foreground flex items-center">
+          <Calendar className="h-3 w-3 mr-1" />
+          {format(date, 'EEEE, MMMM d')}
         </div>
-      </TabsContent>
+      </CardHeader>
       
-      <ReallocationDialog
-        isOpen={isReallocateDialogOpen}
-        setIsOpen={setIsReallocateDialogOpen}
-        selectedAppointment={selectedAppointment}
-        workers={allWorkers.filter(w => w.id !== workerId)}
-        confirmDialogOpen={confirmDialogOpen}
-        setConfirmDialogOpen={setConfirmDialogOpen}
-        reallocateLoading={reallocateLoading}
-        confirmReallocate={confirmReallocate}
-        executeReallocate={executeReallocate}
-        currentWorkerId={workerId}
-      />
-    </>
+      <CardContent className="pb-3">
+        {loading ? (
+          <div className="py-8 flex justify-center">
+            <div className="animate-spin w-8 h-8 border-2 border-primary rounded-full border-t-transparent"></div>
+          </div>
+        ) : appointments.length > 0 ? (
+          <div className="space-y-3">
+            {appointments.map((appointment) => (
+              <Card key={appointment.id} className="border border-border">
+                <CardContent className="py-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-medium text-sm">
+                        {appointment.customer_name}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {appointment.service_name}
+                      </p>
+                    </div>
+                    <Badge variant={
+                      appointment.status === 'confirmed' ? 'default' : 
+                      appointment.status === 'cancelled' ? 'destructive' : 'secondary'
+                    }>
+                      {appointment.status}
+                    </Badge>
+                  </div>
+                  
+                  <div className="flex items-center mt-2 text-sm">
+                    <Timer className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
+                    <span>{appointment.time_slot} - {appointment.end_time}</span>
+                  </div>
+                </CardContent>
+                
+                <CardFooter className="py-2 flex justify-between">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => onReallocate && onReallocate(appointment)}
+                  >
+                    Reallocate
+                  </Button>
+                  
+                  <SlotExtender
+                    slotId={appointment.id}
+                    merchantId={worker.merchant_id}
+                    date={format(date, 'yyyy-MM-dd')}
+                    currentEndTime={appointment.end_time}
+                    workerId={worker.id}
+                    onExtensionComplete={handleSlotExtended}
+                  />
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="py-8 text-center">
+            <p className="text-muted-foreground">No appointments scheduled</p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 
