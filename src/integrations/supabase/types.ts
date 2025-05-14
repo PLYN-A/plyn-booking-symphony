@@ -135,6 +135,8 @@ export type Database = {
           gst: string | null
           ifsc_code: string | null
           legal_business_name: string | null
+          location_lat: string | null
+          location_lng: string | null
           merchant_id: string
           pan: string | null
           razorpay_id: string | null
@@ -162,6 +164,8 @@ export type Database = {
           gst?: string | null
           ifsc_code?: string | null
           legal_business_name?: string | null
+          location_lat?: string | null
+          location_lng?: string | null
           merchant_id: string
           pan?: string | null
           razorpay_id?: string | null
@@ -189,6 +193,8 @@ export type Database = {
           gst?: string | null
           ifsc_code?: string | null
           legal_business_name?: string | null
+          location_lat?: string | null
+          location_lng?: string | null
           merchant_id?: string
           pan?: string | null
           razorpay_id?: string | null

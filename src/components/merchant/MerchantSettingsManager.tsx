@@ -4,12 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Settings2, MapPin } from 'lucide-react';
+import { Loader2, Settings2, MapPin, Map } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { getMerchantSettings, upsertMerchantSettings } from '@/utils/workerUtils';
 import { MerchantSettings } from '@/types/admin';
+import MapLocationDialog from './MapLocationDialog';
 
 interface MerchantSettingsManagerProps {
   merchantId: string;
@@ -30,10 +31,15 @@ const MerchantSettingsManager: React.FC<MerchantSettingsManagerProps> = ({ merch
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isMapDialogOpen, setIsMapDialogOpen] = useState(false);
   const { toast } = useToast();
+
+  // Get merchant business address for initial map location
+  const [merchantAddress, setMerchantAddress] = useState<string>('');
 
   useEffect(() => {
     loadSettings();
+    loadMerchantAddress();
   }, [merchantId]);
 
   const loadSettings = async () => {
@@ -61,6 +67,23 @@ const MerchantSettingsManager: React.FC<MerchantSettingsManagerProps> = ({ merch
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadMerchantAddress = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("merchants")
+        .select("business_address")
+        .eq("id", merchantId)
+        .single();
+      
+      if (error) throw error;
+      if (data) {
+        setMerchantAddress(data.business_address);
+      }
+    } catch (error) {
+      console.error("Error fetching merchant address:", error);
     }
   };
 
@@ -97,6 +120,19 @@ const MerchantSettingsManager: React.FC<MerchantSettingsManagerProps> = ({ merch
       ...prev,
       [field]: value
     }));
+  };
+
+  const handleLocationSelected = (lat: string, lng: string) => {
+    setSettings(prev => ({
+      ...prev,
+      location_lat: lat,
+      location_lng: lng
+    }));
+
+    toast({
+      title: "Location Updated",
+      description: "Your salon location has been updated",
+    });
   };
 
   if (isLoading) {
@@ -202,9 +238,20 @@ const MerchantSettingsManager: React.FC<MerchantSettingsManagerProps> = ({ merch
         </div>
 
         <div className="border-t pt-4 mt-2">
-          <div className="flex items-center mb-2">
-            <MapPin className="h-5 w-5 mr-2" />
-            <h3 className="text-lg font-medium">Salon Location</h3>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center">
+              <MapPin className="h-5 w-5 mr-2" />
+              <h3 className="text-lg font-medium">Salon Location</h3>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setIsMapDialogOpen(true)}
+              className="flex items-center gap-2"
+            >
+              <Map className="h-4 w-4" />
+              {settings.location_lat && settings.location_lng ? 'Change Location' : 'Add Location'}
+            </Button>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -245,6 +292,15 @@ const MerchantSettingsManager: React.FC<MerchantSettingsManagerProps> = ({ merch
           ) : 'Save Settings'}
         </Button>
       </CardContent>
+
+      <MapLocationDialog
+        open={isMapDialogOpen}
+        onOpenChange={setIsMapDialogOpen}
+        onLocationSelected={handleLocationSelected}
+        initialAddress={merchantAddress}
+        initialLat={settings.location_lat}
+        initialLng={settings.location_lng}
+      />
     </Card>
   );
 };
