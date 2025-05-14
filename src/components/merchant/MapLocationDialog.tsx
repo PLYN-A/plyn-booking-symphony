@@ -1,22 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { MapPin, Navigation, Loader2 } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
-import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-
-// Fix for Leaflet marker icons
-import icon from 'leaflet/dist/images/marker-icon.png';
-import iconShadow from 'leaflet/dist/images/marker-shadow.png';
-let DefaultIcon = L.icon({
-  iconUrl: icon,
-  shadowUrl: iconShadow,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41]
-});
-L.Marker.prototype.options.icon = DefaultIcon;
+import { useToast } from '@/hooks/use-toast';
 
 interface MapLocationDialogProps {
   open: boolean;
@@ -26,54 +12,6 @@ interface MapLocationDialogProps {
   initialLat?: string;
   initialLng?: string;
 }
-
-// Component to update map view when position changes
-const ChangeMapView = ({ coordinates }: { coordinates: [number, number] }) => {
-  const map = useMap();
-  useEffect(() => {
-    map.setView(coordinates, 13);
-  }, [coordinates, map]);
-  return null;
-};
-
-// Component to handle marker drag
-const DraggableMarker = ({ 
-  position, 
-  setPosition, 
-  onDragEnd 
-}: { 
-  position: [number, number]; 
-  setPosition: (position: [number, number]) => void;
-  onDragEnd: (position: [number, number]) => void;
-}) => {
-  const markerRef = React.useRef(null);
-
-  const eventHandlers = React.useMemo(
-    () => ({
-      dragend() {
-        const marker = markerRef.current as unknown as L.Marker;
-        if (marker != null) {
-          const newPosition: [number, number] = [
-            marker.getLatLng().lat,
-            marker.getLatLng().lng
-          ];
-          setPosition(newPosition);
-          onDragEnd(newPosition);
-        }
-      },
-    }),
-    [setPosition, onDragEnd],
-  );
-
-  return (
-    <Marker
-      draggable={true}
-      eventHandlers={eventHandlers}
-      position={position}
-      ref={markerRef}
-    />
-  );
-};
 
 const MapLocationDialog: React.FC<MapLocationDialogProps> = ({
   open,
@@ -88,81 +26,163 @@ const MapLocationDialog: React.FC<MapLocationDialogProps> = ({
   const [locatingUser, setLocatingUser] = useState<boolean>(false);
   const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [address, setAddress] = useState<string>('');
-  const [position, setPosition] = useState<[number, number]>([20.5937, 78.9629]); // Default to center of India
+  const [mapInitialized, setMapInitialized] = useState(false);
+  
+  // Google Maps references
+  const mapRef = useRef<HTMLDivElement>(null);
+  const googleMapRef = useRef<google.maps.Map | null>(null);
+  const markerRef = useRef<google.maps.Marker | null>(null);
 
-  // Initialize map when dialog opens
+  // Load Google Maps script
   useEffect(() => {
     if (!open) return;
+    
+    const loadGoogleMapsScript = () => {
+      if (window.google?.maps) {
+        initializeMap();
+        return;
+      }
 
-    const initializeMap = async () => {
-      setLoading(true);
-
-      try {
-        // If we have initial lat/lng, use those
-        if (initialLat && initialLng) {
-          const lat = parseFloat(initialLat);
-          const lng = parseFloat(initialLng);
-          setPosition([lat, lng]);
-          setSelectedLocation({ lat, lng });
-        }
-        // Otherwise try to geocode the initial address
-        else if (initialAddress) {
-          try {
-            // Use Nominatim for geocoding (OpenStreetMap's geocoding service)
-            const response = await fetch(
-              `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(initialAddress)}`
-            );
-            
-            const data = await response.json();
-            
-            if (data && data.length > 0) {
-              const lat = parseFloat(data[0].lat);
-              const lng = parseFloat(data[0].lon);
-              setPosition([lat, lng]);
-              setSelectedLocation({ lat, lng });
-              setAddress(data[0].display_name || initialAddress);
-            }
-          } catch (error) {
-            console.error('Error geocoding address:', error);
-          }
-        }
-
-        setLoading(false);
-      } catch (error) {
-        console.error('Error initializing map:', error);
-        setLoading(false);
+      const script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places`;
+      script.async = true;
+      script.defer = true;
+      script.onload = () => initializeMap();
+      script.onerror = () => {
         toast({
-          title: "Error loading map",
-          description: "Failed to load the location map. Please try again.",
+          title: "Error loading Google Maps",
+          description: "Failed to load Google Maps. Please try again later.",
           variant: "destructive",
         });
-      }
+        setLoading(false);
+      };
+      
+      document.head.appendChild(script);
     };
+    
+    loadGoogleMapsScript();
+    // Clean up function
+    return () => {
+      // Cleanup if needed
+    };
+  }, [open]);
 
-    initializeMap();
-  }, [open, initialAddress, initialLat, initialLng, toast]);
-
-  // Handle when a user clicks on the map
-  const handleMapClick = (e: L.LeafletMouseEvent) => {
-    const { lat, lng } = e.latlng;
-    setPosition([lat, lng]);
-    setSelectedLocation({ lat, lng });
-    reverseGeocode(lat, lng);
-  };
+  // Initialize map with initial location
+  const initializeMap = useCallback(async () => {
+    if (!mapRef.current || !window.google?.maps) return;
+    
+    setLoading(true);
+    
+    try {
+      let initialPosition: google.maps.LatLngLiteral = { lat: 20.5937, lng: 78.9629 }; // Default to center of India
+      
+      // If we have initial lat/lng, use those
+      if (initialLat && initialLng) {
+        const lat = parseFloat(initialLat);
+        const lng = parseFloat(initialLng);
+        initialPosition = { lat, lng };
+        setSelectedLocation({ lat, lng });
+      }
+      // Otherwise try to geocode the initial address
+      else if (initialAddress) {
+        try {
+          const geocoder = new google.maps.Geocoder();
+          const result = await new Promise<google.maps.GeocoderResult[]>((resolve, reject) => {
+            geocoder.geocode({ address: initialAddress }, (results, status) => {
+              if (status === google.maps.GeocoderStatus.OK && results && results.length > 0) {
+                resolve(results);
+              } else {
+                reject(new Error(`Geocoding failed: ${status}`));
+              }
+            });
+          });
+          
+          if (result[0]?.geometry?.location) {
+            const location = result[0].geometry.location;
+            initialPosition = { lat: location.lat(), lng: location.lng() };
+            setSelectedLocation({ lat: location.lat(), lng: location.lng() });
+            setAddress(result[0].formatted_address || initialAddress);
+          }
+        } catch (error) {
+          console.error('Error geocoding address:', error);
+        }
+      }
+      
+      // Create the map
+      const mapOptions: google.maps.MapOptions = {
+        center: initialPosition,
+        zoom: 15,
+        mapTypeControl: true,
+        streetViewControl: false,
+        fullscreenControl: true,
+        zoomControl: true,
+      };
+      
+      const map = new google.maps.Map(mapRef.current, mapOptions);
+      googleMapRef.current = map;
+      
+      // Add marker
+      const marker = new google.maps.Marker({
+        position: initialPosition,
+        map,
+        draggable: true,
+        animation: google.maps.Animation.DROP,
+        title: 'Salon Location'
+      });
+      markerRef.current = marker;
+      
+      // Handle map click to move marker
+      map.addListener('click', (e: google.maps.MapMouseEvent) => {
+        if (e.latLng && markerRef.current) {
+          markerRef.current.setPosition(e.latLng);
+          const lat = e.latLng.lat();
+          const lng = e.latLng.lng();
+          setSelectedLocation({ lat, lng });
+          reverseGeocode(lat, lng);
+        }
+      });
+      
+      // Handle marker drag
+      marker.addListener('dragend', () => {
+        if (markerRef.current) {
+          const position = markerRef.current.getPosition();
+          if (position) {
+            const lat = position.lat();
+            const lng = position.lng();
+            setSelectedLocation({ lat, lng });
+            reverseGeocode(lat, lng);
+          }
+        }
+      });
+      
+      setMapInitialized(true);
+    } catch (error) {
+      console.error('Error initializing map:', error);
+      toast({
+        title: "Error loading map",
+        description: "Failed to load the location map. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [initialAddress, initialLat, initialLng, toast]);
   
   // Reverse geocode to get address from coordinates
   const reverseGeocode = async (lat: number, lng: number) => {
+    if (!window.google?.maps) return;
+    
     try {
-      // Use Nominatim for reverse geocoding
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`
-      );
+      const geocoder = new google.maps.Geocoder();
+      const latlng = { lat, lng };
       
-      const data = await response.json();
-      
-      if (data && data.display_name) {
-        setAddress(data.display_name);
-      }
+      geocoder.geocode({ location: latlng }, (results, status) => {
+        if (status === google.maps.GeocoderStatus.OK && results && results[0]) {
+          setAddress(results[0].formatted_address);
+        } else {
+          console.error('Reverse geocoding failed:', status);
+        }
+      });
     } catch (error) {
       console.error('Error reverse geocoding:', error);
     }
@@ -170,10 +190,10 @@ const MapLocationDialog: React.FC<MapLocationDialogProps> = ({
 
   // Get user's current location
   const handleUseMyLocation = () => {
-    if (!navigator.geolocation) {
+    if (!navigator.geolocation || !googleMapRef.current || !markerRef.current) {
       toast({
         title: "Location not supported",
-        description: "Your browser does not support geolocation.",
+        description: "Your browser does not support geolocation or map is not initialized.",
         variant: "destructive",
       });
       return;
@@ -184,8 +204,18 @@ const MapLocationDialog: React.FC<MapLocationDialogProps> = ({
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
+        const latLng = new google.maps.LatLng(latitude, longitude);
         
-        setPosition([latitude, longitude]);
+        // Center map on user's location
+        if (googleMapRef.current) {
+          googleMapRef.current.setCenter(latLng);
+        }
+        
+        // Move marker to user's location
+        if (markerRef.current) {
+          markerRef.current.setPosition(latLng);
+        }
+        
         setSelectedLocation({ lat: latitude, lng: longitude });
         
         // Get address for the user location
@@ -201,7 +231,8 @@ const MapLocationDialog: React.FC<MapLocationDialogProps> = ({
           variant: "destructive",
         });
         setLocatingUser(false);
-      }
+      },
+      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
     );
   };
 
@@ -215,13 +246,6 @@ const MapLocationDialog: React.FC<MapLocationDialogProps> = ({
       );
       onOpenChange(false);
     }
-  };
-
-  // Handle marker drag end
-  const handleMarkerDragEnd = (newPosition: [number, number]) => {
-    const [lat, lng] = newPosition;
-    setSelectedLocation({ lat, lng });
-    reverseGeocode(lat, lng);
   };
 
   return (
@@ -239,30 +263,14 @@ const MapLocationDialog: React.FC<MapLocationDialogProps> = ({
 
         <div className="relative">
           {/* Map container */}
-          <div className="w-full h-[400px] rounded-lg bg-muted overflow-hidden">
-            {loading ? (
+          <div 
+            ref={mapRef}
+            className="w-full h-[400px] rounded-lg bg-muted overflow-hidden"
+          >
+            {loading && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-lg">
                 <Loader2 className="h-8 w-8 animate-spin text-white" />
               </div>
-            ) : (
-              <MapContainer
-                center={position}
-                zoom={13}
-                scrollWheelZoom={false}
-                style={{ height: "100%", width: "100%" }}
-                onClick={handleMapClick}
-              >
-                <TileLayer
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                />
-                <DraggableMarker 
-                  position={position} 
-                  setPosition={setPosition} 
-                  onDragEnd={handleMarkerDragEnd}
-                />
-                <ChangeMapView coordinates={position} />
-              </MapContainer>
             )}
           </div>
         </div>
@@ -289,7 +297,7 @@ const MapLocationDialog: React.FC<MapLocationDialogProps> = ({
             variant="outline"
             className="gap-2"
             onClick={handleUseMyLocation}
-            disabled={locatingUser}
+            disabled={locatingUser || !mapInitialized}
           >
             {locatingUser ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -303,7 +311,7 @@ const MapLocationDialog: React.FC<MapLocationDialogProps> = ({
             type="button"
             className="gap-2"
             onClick={handleConfirm}
-            disabled={!selectedLocation}
+            disabled={!selectedLocation || !mapInitialized}
           >
             <MapPin className="h-4 w-4" />
             Confirm Location
