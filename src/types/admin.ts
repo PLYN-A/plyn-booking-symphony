@@ -1,3 +1,4 @@
+
 export interface TimeSlot {
   id: string;
   merchant_id: string;
@@ -114,6 +115,8 @@ export interface MerchantSettings {
   break_start?: string;
   break_end?: string;
   worker_assignment_strategy: string;
+  location_lat?: string;
+  location_lng?: string;
 }
 
 export interface WorkerAvailability {

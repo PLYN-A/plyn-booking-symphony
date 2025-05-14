@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Settings2 } from 'lucide-react';
+import { Loader2, Settings2, MapPin } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,7 +24,9 @@ const MerchantSettingsManager: React.FC<MerchantSettingsManagerProps> = ({ merch
     working_hours_end: '17:00',
     break_start: '',
     break_end: '',
-    worker_assignment_strategy: 'next-available'
+    worker_assignment_strategy: 'next-available',
+    location_lat: '',
+    location_lng: ''
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -46,7 +48,9 @@ const MerchantSettingsManager: React.FC<MerchantSettingsManagerProps> = ({ merch
           working_hours_end: data.working_hours_end || '17:00',
           break_start: data.break_start || '',
           break_end: data.break_end || '',
-          worker_assignment_strategy: data.worker_assignment_strategy || 'next-available'
+          worker_assignment_strategy: data.worker_assignment_strategy || 'next-available',
+          location_lat: data.location_lat || '',
+          location_lng: data.location_lng || ''
         });
       }
     } catch (error: any) {
@@ -194,6 +198,37 @@ const MerchantSettingsManager: React.FC<MerchantSettingsManagerProps> = ({ merch
               value={settings.break_end}
               onChange={(e) => handleChange('break_end', e.target.value)}
             />
+          </div>
+        </div>
+
+        <div className="border-t pt-4 mt-2">
+          <div className="flex items-center mb-2">
+            <MapPin className="h-5 w-5 mr-2" />
+            <h3 className="text-lg font-medium">Salon Location</h3>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="locationLat">Latitude</Label>
+              <Input
+                id="locationLat"
+                type="text"
+                placeholder="e.g., 28.6139"
+                value={settings.location_lat}
+                onChange={(e) => handleChange('location_lat', e.target.value)}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="locationLng">Longitude</Label>
+              <Input
+                id="locationLng"
+                type="text"
+                placeholder="e.g., 77.2090"
+                value={settings.location_lng}
+                onChange={(e) => handleChange('location_lng', e.target.value)}
+              />
+            </div>
           </div>
         </div>
 

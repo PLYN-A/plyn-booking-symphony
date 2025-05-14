@@ -61,6 +61,8 @@ export const upsertMerchantSettings = async (
     break_start?: string | null;
     break_end?: string | null;
     worker_assignment_strategy?: string;
+    location_lat?: string;
+    location_lng?: string;
   }
 ) => {
   try {
@@ -99,7 +101,9 @@ export const getMerchantSettings = async (merchantId: string): Promise<MerchantS
           total_workers: 1,
           working_hours_start: "09:00",
           working_hours_end: "17:00",
-          worker_assignment_strategy: "next-available"
+          worker_assignment_strategy: "next-available",
+          location_lat: "",
+          location_lng: ""
         };
         
         const { data: newData, error: insertError } = await supabase
