@@ -1,13 +1,22 @@
-import React, { useEffect, useRef, useState } from 'react';
-import mapboxgl from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
+import React, { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { MapPin, Navigation, Loader2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
-// Use a public token as this will be exposed to the client
-mapboxgl.accessToken = 'pk.eyJ1IjoibG92YWJsZS1kZW1vIiwiYSI6ImNscnRmdGZ3bjBjbjQyam85NGIzNXEwZ2cifQ.L8rfsiBP2A2xZZeYJVIrAQ';
+// Fix for Leaflet marker icons
+import icon from 'leaflet/dist/images/marker-icon.png';
+import iconShadow from 'leaflet/dist/images/marker-shadow.png';
+let DefaultIcon = L.icon({
+  iconUrl: icon,
+  shadowUrl: iconShadow,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41]
+});
+L.Marker.prototype.options.icon = DefaultIcon;
 
 interface MapLocationDialogProps {
   open: boolean;
@@ -18,6 +27,54 @@ interface MapLocationDialogProps {
   initialLng?: string;
 }
 
+// Component to update map view when position changes
+const ChangeMapView = ({ coordinates }: { coordinates: [number, number] }) => {
+  const map = useMap();
+  useEffect(() => {
+    map.setView(coordinates, 13);
+  }, [coordinates, map]);
+  return null;
+};
+
+// Component to handle marker drag
+const DraggableMarker = ({ 
+  position, 
+  setPosition, 
+  onDragEnd 
+}: { 
+  position: [number, number]; 
+  setPosition: (position: [number, number]) => void;
+  onDragEnd: (position: [number, number]) => void;
+}) => {
+  const markerRef = React.useRef(null);
+
+  const eventHandlers = React.useMemo(
+    () => ({
+      dragend() {
+        const marker = markerRef.current as unknown as L.Marker;
+        if (marker != null) {
+          const newPosition: [number, number] = [
+            marker.getLatLng().lat,
+            marker.getLatLng().lng
+          ];
+          setPosition(newPosition);
+          onDragEnd(newPosition);
+        }
+      },
+    }),
+    [setPosition, onDragEnd],
+  );
+
+  return (
+    <Marker
+      draggable={true}
+      eventHandlers={eventHandlers}
+      position={position}
+      ref={markerRef}
+    />
+  );
+};
+
 const MapLocationDialog: React.FC<MapLocationDialogProps> = ({
   open,
   onOpenChange,
@@ -26,105 +83,51 @@ const MapLocationDialog: React.FC<MapLocationDialogProps> = ({
   initialLat,
   initialLng
 }) => {
-  const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<mapboxgl.Map | null>(null);
-  const marker = useRef<mapboxgl.Marker | null>(null);
   const { toast } = useToast();
   const [loading, setLoading] = useState<boolean>(true);
   const [locatingUser, setLocatingUser] = useState<boolean>(false);
   const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [address, setAddress] = useState<string>('');
+  const [position, setPosition] = useState<[number, number]>([20.5937, 78.9629]); // Default to center of India
 
   // Initialize map when dialog opens
   useEffect(() => {
-    if (!open || !mapContainer.current) return;
+    if (!open) return;
 
-    // Initialize map
     const initializeMap = async () => {
       setLoading(true);
 
       try {
-        // Initial center coordinates
-        let initialCoordinates: [number, number] = [78.9629, 20.5937]; // Default to center of India
-
         // If we have initial lat/lng, use those
         if (initialLat && initialLng) {
-          initialCoordinates = [parseFloat(initialLng), parseFloat(initialLat)];
+          const lat = parseFloat(initialLat);
+          const lng = parseFloat(initialLng);
+          setPosition([lat, lng]);
+          setSelectedLocation({ lat, lng });
         }
         // Otherwise try to geocode the initial address
         else if (initialAddress) {
           try {
-            const geocodeResponse = await fetch(
-              `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(initialAddress)}.json?access_token=${mapboxgl.accessToken}`
+            // Use Nominatim for geocoding (OpenStreetMap's geocoding service)
+            const response = await fetch(
+              `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(initialAddress)}`
             );
             
-            const geocodeData = await geocodeResponse.json();
+            const data = await response.json();
             
-            if (geocodeData.features && geocodeData.features.length > 0) {
-              const [lng, lat] = geocodeData.features[0].center;
-              initialCoordinates = [lng, lat];
-              setAddress(geocodeData.features[0].place_name || initialAddress);
+            if (data && data.length > 0) {
+              const lat = parseFloat(data[0].lat);
+              const lng = parseFloat(data[0].lon);
+              setPosition([lat, lng]);
+              setSelectedLocation({ lat, lng });
+              setAddress(data[0].display_name || initialAddress);
             }
           } catch (error) {
             console.error('Error geocoding address:', error);
           }
         }
 
-        // Create the map
-        map.current = new mapboxgl.Map({
-          container: mapContainer.current,
-          style: 'mapbox://styles/mapbox/streets-v12',
-          center: initialCoordinates,
-          zoom: 12
-        });
-
-        // Add navigation control
-        map.current.addControl(
-          new mapboxgl.NavigationControl(), 
-          'top-right'
-        );
-
-        // Add marker at initial position
-        marker.current = new mapboxgl.Marker({ draggable: true })
-          .setLngLat(initialCoordinates)
-          .addTo(map.current);
-
-        // Update selected location when marker is dragged
-        marker.current.on('dragend', () => {
-          if (marker.current) {
-            const lngLat = marker.current.getLngLat();
-            setSelectedLocation({ lat: lngLat.lat, lng: lngLat.lng });
-            
-            // Get address for the new location
-            reverseGeocode(lngLat.lat, lngLat.lng);
-          }
-        });
-
-        // Allow clicking on the map to move marker
-        map.current.on('click', (e) => {
-          if (marker.current) {
-            marker.current.setLngLat(e.lngLat);
-            setSelectedLocation({ lat: e.lngLat.lat, lng: e.lngLat.lng });
-            
-            // Get address for the new location
-            reverseGeocode(e.lngLat.lat, e.lngLat.lng);
-          }
-        });
-
-        // Set initial selected location
-        setSelectedLocation({ 
-          lat: initialCoordinates[1], 
-          lng: initialCoordinates[0] 
-        });
-
-        // Get address for the initial location
-        reverseGeocode(initialCoordinates[1], initialCoordinates[0]);
-
-        // Map is loaded
-        map.current.on('load', () => {
-          setLoading(false);
-        });
-
+        setLoading(false);
       } catch (error) {
         console.error('Error initializing map:', error);
         setLoading(false);
@@ -137,27 +140,28 @@ const MapLocationDialog: React.FC<MapLocationDialogProps> = ({
     };
 
     initializeMap();
-
-    // Clean up
-    return () => {
-      if (map.current) {
-        map.current.remove();
-        map.current = null;
-      }
-    };
   }, [open, initialAddress, initialLat, initialLng, toast]);
 
+  // Handle when a user clicks on the map
+  const handleMapClick = (e: L.LeafletMouseEvent) => {
+    const { lat, lng } = e.latlng;
+    setPosition([lat, lng]);
+    setSelectedLocation({ lat, lng });
+    reverseGeocode(lat, lng);
+  };
+  
   // Reverse geocode to get address from coordinates
   const reverseGeocode = async (lat: number, lng: number) => {
     try {
+      // Use Nominatim for reverse geocoding
       const response = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${mapboxgl.accessToken}`
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`
       );
       
       const data = await response.json();
       
-      if (data.features && data.features.length > 0) {
-        setAddress(data.features[0].place_name);
+      if (data && data.display_name) {
+        setAddress(data.display_name);
       }
     } catch (error) {
       console.error('Error reverse geocoding:', error);
@@ -181,19 +185,11 @@ const MapLocationDialog: React.FC<MapLocationDialogProps> = ({
       (position) => {
         const { latitude, longitude } = position.coords;
         
-        if (map.current && marker.current) {
-          map.current.flyTo({
-            center: [longitude, latitude],
-            zoom: 15,
-            speed: 1.2
-          });
-          
-          marker.current.setLngLat([longitude, latitude]);
-          setSelectedLocation({ lat: latitude, lng: longitude });
-          
-          // Get address for the user location
-          reverseGeocode(latitude, longitude);
-        }
+        setPosition([latitude, longitude]);
+        setSelectedLocation({ lat: latitude, lng: longitude });
+        
+        // Get address for the user location
+        reverseGeocode(latitude, longitude);
         
         setLocatingUser(false);
       },
@@ -221,6 +217,13 @@ const MapLocationDialog: React.FC<MapLocationDialogProps> = ({
     }
   };
 
+  // Handle marker drag end
+  const handleMarkerDragEnd = (newPosition: [number, number]) => {
+    const [lat, lng] = newPosition;
+    setSelectedLocation({ lat, lng });
+    reverseGeocode(lat, lng);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-full max-w-3xl">
@@ -236,17 +239,32 @@ const MapLocationDialog: React.FC<MapLocationDialogProps> = ({
 
         <div className="relative">
           {/* Map container */}
-          <div 
-            ref={mapContainer} 
-            className="w-full h-[400px] rounded-lg bg-muted overflow-hidden"
-          />
-          
-          {/* Loading overlay */}
-          {loading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-lg">
-              <Loader2 className="h-8 w-8 animate-spin text-white" />
-            </div>
-          )}
+          <div className="w-full h-[400px] rounded-lg bg-muted overflow-hidden">
+            {loading ? (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-lg">
+                <Loader2 className="h-8 w-8 animate-spin text-white" />
+              </div>
+            ) : (
+              <MapContainer
+                center={position}
+                zoom={13}
+                scrollWheelZoom={false}
+                style={{ height: "100%", width: "100%" }}
+                onClick={handleMapClick}
+              >
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+                <DraggableMarker 
+                  position={position} 
+                  setPosition={setPosition} 
+                  onDragEnd={handleMarkerDragEnd}
+                />
+                <ChangeMapView coordinates={position} />
+              </MapContainer>
+            )}
+          </div>
         </div>
 
         {/* Selected location display */}

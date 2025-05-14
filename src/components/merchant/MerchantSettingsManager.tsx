@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -122,7 +121,7 @@ const MerchantSettingsManager: React.FC<MerchantSettingsManagerProps> = ({ merch
     }));
   };
 
-  const handleLocationSelected = (lat: string, lng: string) => {
+  const handleLocationSelected = (lat: string, lng: string, address?: string) => {
     setSettings(prev => ({
       ...prev,
       location_lat: lat,
