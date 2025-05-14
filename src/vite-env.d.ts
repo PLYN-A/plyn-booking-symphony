@@ -1,8 +1,9 @@
 
 /// <reference types="vite/client" />
+/// <reference types="@types/google.maps" />
 
 interface Window {
   google?: {
-    maps: any;
+    maps: typeof google.maps;
   }
 }
