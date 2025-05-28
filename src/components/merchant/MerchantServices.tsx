@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +27,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Edit, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -36,9 +36,63 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { Service } from '@/types/admin';
 
+const staticCategories = [
+  {
+    name: "Hair & styling",
+    gender: "unisex",
+  },
+  {
+    name: "Nails",
+    gender: "female",
+  },
+  {
+    name: "Eyebrows & eyelashes",
+    gender: "female",
+  },
+  {
+    name: "Massage",
+    gender: "unisex",
+  },
+  {
+    name: "Barbering",
+    gender: "male",
+  },
+  {
+    name: "Hair removal",
+    gender: "female",
+  },
+  {
+    name: "Facials & skincare",
+    gender: "unisex",
+  },
+  {
+    name: "Injectables & fillers",
+    gender: "unisex",
+  },
+  {
+    name: "Body",
+    gender: "unisex",
+  },
+  {
+    name: "Tattoo & piercing",
+    gender: "unisex",
+  },
+  {
+    name: "Makeup",
+    gender: "female",
+  },
+  {
+    name: "Medical & dental",
+    gender: "unisex",
+  },
+];
+
 const serviceFormSchema = z.object({
   name: z.string().min(2, {
     message: "Service name must be at least 2 characters.",
+  }),
+  category: z.string().min(1, {
+    message: "Please select a category.",
   }),
   description: z.string().min(5, {
     message: "Description must be at least 5 characters.",
@@ -66,6 +120,7 @@ const MerchantServices: React.FC<MerchantServicesProps> = ({ merchantId }) => {
     resolver: zodResolver(serviceFormSchema),
     defaultValues: {
       name: "",
+      category: "",
       description: "",
       price: "",
       duration: "30",
@@ -80,6 +135,7 @@ const MerchantServices: React.FC<MerchantServicesProps> = ({ merchantId }) => {
     if (editingService) {
       form.reset({
         name: editingService.name,
+        category: editingService.category || "",
         description: editingService.description,
         price: editingService.price.toString(),
         duration: editingService.duration.toString(),
@@ -87,6 +143,7 @@ const MerchantServices: React.FC<MerchantServicesProps> = ({ merchantId }) => {
     } else {
       form.reset({
         name: "",
+        category: "",
         description: "",
         price: "",
         duration: "30",
@@ -124,6 +181,7 @@ const MerchantServices: React.FC<MerchantServicesProps> = ({ merchantId }) => {
     try {
       const serviceData = {
         name: values.name,
+        category: values.category,
         description: values.description,
         price: parseFloat(values.price),
         duration: parseInt(values.duration),
@@ -240,6 +298,30 @@ const MerchantServices: React.FC<MerchantServicesProps> = ({ merchantId }) => {
                 />
                 <FormField
                   control={form.control}
+                  name="category"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Category</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a category" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {staticCategories.map((category) => (
+                            <SelectItem key={category.name} value={category.name}>
+                              {category.name} ({category.gender})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
                   name="description"
                   render={({ field }) => (
                     <FormItem>
@@ -317,6 +399,12 @@ const MerchantServices: React.FC<MerchantServicesProps> = ({ merchantId }) => {
               <CardHeader className="pb-2">
                 <CardTitle className="text-xl">{service.name}</CardTitle>
                 <CardDescription className="text-sm text-muted-foreground">
+                  {service.category && (
+                    <span className="inline-block bg-primary/10 text-primary px-2 py-1 rounded-md text-xs mb-1">
+                      {service.category}
+                    </span>
+                  )}
+                  <br />
                   {service.description}
                 </CardDescription>
               </CardHeader>

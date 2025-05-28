@@ -223,6 +223,8 @@ export type Database = {
           business_phone: string
           created_at: string
           id: string
+          latitude: number | null
+          longitude: number | null
           razorpay_id: string | null
           service_category: string
           status: string
@@ -235,6 +237,8 @@ export type Database = {
           business_phone: string
           created_at?: string
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           razorpay_id?: string | null
           service_category: string
           status?: string
@@ -247,6 +251,8 @@ export type Database = {
           business_phone?: string
           created_at?: string
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           razorpay_id?: string | null
           service_category?: string
           status?: string
