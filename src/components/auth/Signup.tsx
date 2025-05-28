@@ -8,9 +8,11 @@ import { Mail, Lock, User, Phone, Calendar, Users } from 'lucide-react';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AnimatedButton } from '@/components/ui/AnimatedButton';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
+import PhoneSignup from './PhoneSignup';
 
 const signupSchema = z.object({
   username: z.string().min(3, 'Username must be at least 3 characters'),
@@ -53,7 +55,6 @@ const Signup = () => {
     try {
       console.log("Signing up with values:", values);
       
-      // Generate a unique username if needed (add a timestamp)
       const username = values.username;
       
       await signUp(
@@ -63,7 +64,7 @@ const Signup = () => {
         values.phoneNumber, 
         values.age ? parseInt(values.age) : undefined, 
         values.gender,
-        false // Never create merchants from regular signup
+        false
       );
       
       toast({
@@ -74,191 +75,203 @@ const Signup = () => {
       navigate('/');
     } catch (error: any) {
       console.error('Signup error:', error);
-      // Don't show toast here since it's already shown in the signUp function
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <Form {...signupForm}>
-      <form onSubmit={signupForm.handleSubmit(onSignupSubmit)} className="space-y-4">
-        <FormField
-          control={signupForm.control}
-          name="username"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Username</FormLabel>
-              <div className="relative">
-                <FormControl>
-                  <Input
-                    placeholder="johndoe"
-                    {...field}
-                    className="pl-10"
-                  />
-                </FormControl>
-                <User className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-              </div>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={signupForm.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email</FormLabel>
-              <div className="relative">
-                <FormControl>
-                  <Input
-                    placeholder="your@email.com"
-                    {...field}
-                    className="pl-10"
-                  />
-                </FormControl>
-                <Mail className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-              </div>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={signupForm.control}
-          name="phoneNumber"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Phone Number (Optional)</FormLabel>
-              <div className="relative">
-                <FormControl>
-                  <Input
-                    placeholder="+1 (123) 456-7890"
-                    {...field}
-                    className="pl-10"
-                  />
-                </FormControl>
-                <Phone className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-              </div>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={signupForm.control}
-            name="age"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Age (Optional)</FormLabel>
-                <div className="relative">
-                  <FormControl>
-                    <Input
-                      type="number"
-                      placeholder="25"
-                      {...field}
-                      className="pl-10"
-                    />
-                  </FormControl>
-                  <Calendar className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-                </div>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          
-          <FormField
-            control={signupForm.control}
-            name="gender"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Gender (Optional)</FormLabel>
-                <Select 
-                  onValueChange={field.onChange} 
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger className="pl-10">
-                      <SelectValue placeholder="Select" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <Users className="absolute left-3 top-11 h-5 w-5 text-muted-foreground" />
-                  <SelectContent>
-                    <SelectItem value="male">Male</SelectItem>
-                    <SelectItem value="female">Female</SelectItem>
-                    <SelectItem value="non-binary">Non-binary</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                    <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-        
-        <FormField
-          control={signupForm.control}
-          name="password"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Password</FormLabel>
-              <div className="relative">
-                <FormControl>
-                  <Input
-                    type="password"
-                    placeholder="••••••••"
-                    {...field}
-                    className="pl-10"
-                  />
-                </FormControl>
-                <Lock className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-              </div>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={signupForm.control}
-          name="confirmPassword"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Confirm Password</FormLabel>
-              <div className="relative">
-                <FormControl>
-                  <Input
-                    type="password"
-                    placeholder="••••••••"
-                    {...field}
-                    className="pl-10"
-                  />
-                </FormControl>
-                <Lock className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-              </div>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <div className="mt-2 text-center">
-          <p className="text-sm text-muted-foreground">
-            Are you a salon owner? <a href="/merchant-login" className="text-primary hover:underline">Sign up as a merchant</a>
-          </p>
-        </div>
-        
-        <AnimatedButton
-          variant="gradient"
-          type="submit"
-          className="w-full mt-6"
-          disabled={isLoading}
-        >
-          {isLoading ? 'Creating Account...' : 'Create Account'}
-        </AnimatedButton>
-      </form>
-    </Form>
+    <Tabs defaultValue="email" className="w-full">
+      <TabsList className="grid w-full grid-cols-2">
+        <TabsTrigger value="email">Email</TabsTrigger>
+        <TabsTrigger value="phone">Phone</TabsTrigger>
+      </TabsList>
+      
+      <TabsContent value="email">
+        <Form {...signupForm}>
+          <form onSubmit={signupForm.handleSubmit(onSignupSubmit)} className="space-y-4">
+            <FormField
+              control={signupForm.control}
+              name="username"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Username</FormLabel>
+                  <div className="relative">
+                    <FormControl>
+                      <Input
+                        placeholder="johndoe"
+                        {...field}
+                        className="pl-10"
+                      />
+                    </FormControl>
+                    <User className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={signupForm.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <div className="relative">
+                    <FormControl>
+                      <Input
+                        placeholder="your@email.com"
+                        {...field}
+                        className="pl-10"
+                      />
+                    </FormControl>
+                    <Mail className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={signupForm.control}
+              name="phoneNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Phone Number (Optional)</FormLabel>
+                  <div className="relative">
+                    <FormControl>
+                      <Input
+                        placeholder="+1 (123) 456-7890"
+                        {...field}
+                        className="pl-10"
+                      />
+                    </FormControl>
+                    <Phone className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={signupForm.control}
+                name="age"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Age (Optional)</FormLabel>
+                    <div className="relative">
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="25"
+                          {...field}
+                          className="pl-10"
+                        />
+                      </FormControl>
+                      <Calendar className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={signupForm.control}
+                name="gender"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Gender (Optional)</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="pl-10">
+                          <SelectValue placeholder="Select" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <Users className="absolute left-3 top-11 h-5 w-5 text-muted-foreground" />
+                      <SelectContent>
+                        <SelectItem value="male">Male</SelectItem>
+                        <SelectItem value="female">Female</SelectItem>
+                        <SelectItem value="non-binary">Non-binary</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                        <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <FormField
+              control={signupForm.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Password</FormLabel>
+                  <div className="relative">
+                    <FormControl>
+                      <Input
+                        type="password"
+                        placeholder="••••••••"
+                        {...field}
+                        className="pl-10"
+                      />
+                    </FormControl>
+                    <Lock className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={signupForm.control}
+              name="confirmPassword"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Confirm Password</FormLabel>
+                  <div className="relative">
+                    <FormControl>
+                      <Input
+                        type="password"
+                        placeholder="••••••••"
+                        {...field}
+                        className="pl-10"
+                      />
+                    </FormControl>
+                    <Lock className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <div className="mt-2 text-center">
+              <p className="text-sm text-muted-foreground">
+                Are you a salon owner? <a href="/merchant-login" className="text-primary hover:underline">Sign up as a merchant</a>
+              </p>
+            </div>
+            
+            <AnimatedButton
+              variant="gradient"
+              type="submit"
+              className="w-full mt-6"
+              disabled={isLoading}
+            >
+              {isLoading ? 'Creating Account...' : 'Create Account'}
+            </AnimatedButton>
+          </form>
+        </Form>
+      </TabsContent>
+      
+      <TabsContent value="phone">
+        <PhoneSignup />
+      </TabsContent>
+    </Tabs>
   );
 };
 
