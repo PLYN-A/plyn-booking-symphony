@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -8,10 +7,12 @@ import { Mail, Lock, Store, Phone } from 'lucide-react';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AnimatedButton } from '@/components/ui/AnimatedButton';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import PhoneAuth from './PhoneAuth';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -148,7 +149,8 @@ const Login = () => {
         .select('*, profiles(email)')
         .eq('business_name', values.businessName)
         .eq('business_email', values.businessEmail)
-        .eq('business_phone', values.businessPhone);
+        .eq('business_phone', parseInt(values.businessPhone))
+        .eq('business_address', values.businessAddress);
         
       if (merchantError) {
         console.error("Error fetching merchant data:", merchantError);
@@ -281,226 +283,258 @@ const Login = () => {
   }
 
   return (
-    <>
-      {!showMerchantFields ? (
-        <Form {...loginForm}>
-          <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
-            <FormField
-              control={loginForm.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <div className="relative">
-                    <FormControl>
-                      <Input
-                        placeholder="your@email.com"
-                        {...field}
-                        className="pl-10"
-                        type="email"
-                        autoComplete="email"
-                      />
-                    </FormControl>
-                    <Mail className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={loginForm.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Password</FormLabel>
-                  <div className="relative">
-                    <FormControl>
-                      <Input
-                        type="password"
-                        placeholder="••••••••"
-                        {...field}
-                        className="pl-10"
-                        autoComplete="current-password"
-                      />
-                    </FormControl>
-                    <Lock className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={loginForm.control}
-              name="isMerchant"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md p-4 shadow">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>
-                      Sign in as a merchant
-                    </FormLabel>
-                  </div>
-                </FormItem>
-              )}
-            />
-            
-            <div className="flex flex-col space-y-3 mt-6">
-              <AnimatedButton
-                variant="gradient"
-                type="submit"
-                className="w-full"
-                disabled={isLoading}
-              >
-                {isLoading ? 'Signing in...' : 'Sign In'}
-              </AnimatedButton>
+    <Tabs defaultValue="email" className="w-full">
+      <TabsList className="grid w-full grid-cols-2">
+        <TabsTrigger value="email">Email</TabsTrigger>
+        <TabsTrigger value="phone">Phone</TabsTrigger>
+      </TabsList>
+      
+      <TabsContent value="email">
+        {!showMerchantFields ? (
+          <Form {...loginForm}>
+            <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
+              <FormField
+                control={loginForm.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <div className="relative">
+                      <FormControl>
+                        <Input
+                          placeholder="your@email.com"
+                          {...field}
+                          className="pl-10"
+                          type="email"
+                          autoComplete="email"
+                        />
+                      </FormControl>
+                      <Mail className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               
-              <button
-                type="button"
-                onClick={() => setShowForgotPassword(true)}
-                className="text-sm text-primary underline text-center"
-              >
-                Forgot password?
-              </button>
+              <FormField
+                control={loginForm.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Password</FormLabel>
+                    <div className="relative">
+                      <FormControl>
+                        <Input
+                          type="password"
+                          placeholder="••••••••"
+                          {...field}
+                          className="pl-10"
+                          autoComplete="current-password"
+                        />
+                      </FormControl>
+                      <Lock className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               
-              <button
-                type="button"
-                onClick={() => setShowMerchantFields(true)}
-                className="text-sm text-primary underline text-center"
-              >
-                Sign in with business details instead
-              </button>
-            </div>
-          </form>
-        </Form>
-      ) : (
-        <Form {...merchantLoginForm}>
-          <form onSubmit={merchantLoginForm.handleSubmit(onMerchantLoginSubmit)} className="space-y-4">
-            <FormField
-              control={merchantLoginForm.control}
-              name="businessName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Business Name</FormLabel>
-                  <div className="relative">
+              <FormField
+                control={loginForm.control}
+                name="isMerchant"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md p-4 shadow">
                     <FormControl>
-                      <Input
-                        placeholder="Your business name"
-                        {...field}
-                        className="pl-10"
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
                       />
                     </FormControl>
-                    <Store className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={merchantLoginForm.control}
-              name="businessEmail"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Business Email</FormLabel>
-                  <div className="relative">
-                    <FormControl>
-                      <Input
-                        placeholder="business@example.com"
-                        {...field}
-                        className="pl-10"
-                        type="email"
-                        autoComplete="email"
-                      />
-                    </FormControl>
-                    <Mail className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={merchantLoginForm.control}
-              name="businessPhone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Business Phone</FormLabel>
-                  <div className="relative">
-                    <FormControl>
-                      <Input
-                        placeholder="(123) 456-7890"
-                        {...field}
-                        className="pl-10"
-                        type="tel"
-                      />
-                    </FormControl>
-                    <Phone className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={merchantLoginForm.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Password</FormLabel>
-                  <div className="relative">
-                    <FormControl>
-                      <Input
-                        type="password"
-                        placeholder="••••••••"
-                        {...field}
-                        className="pl-10"
-                        autoComplete="current-password"
-                      />
-                    </FormControl>
-                    <Lock className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <div className="flex flex-col space-y-3 mt-6">
-              <AnimatedButton
-                variant="gradient"
-                type="submit"
-                className="w-full"
-                disabled={isLoading}
-              >
-                {isLoading ? 'Signing in...' : 'Sign In as Merchant'}
-              </AnimatedButton>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>
+                        Sign in as a merchant
+                      </FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
               
-              <button
-                type="button"
-                onClick={() => setShowForgotPassword(true)}
-                className="text-sm text-primary underline text-center"
-              >
-                Forgot password?
-              </button>
+              <div className="flex flex-col space-y-3 mt-6">
+                <AnimatedButton
+                  variant="gradient"
+                  type="submit"
+                  className="w-full"
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Signing in...' : 'Sign In'}
+                </AnimatedButton>
+                
+                <button
+                  type="button"
+                  onClick={() => setShowForgotPassword(true)}
+                  className="text-sm text-primary underline text-center"
+                >
+                  Forgot password?
+                </button>
+                
+                <button
+                  type="button"
+                  onClick={() => setShowMerchantFields(true)}
+                  className="text-sm text-primary underline text-center"
+                >
+                  Sign in with business details instead
+                </button>
+              </div>
+            </form>
+          </Form>
+        ) : (
+          <Form {...merchantLoginForm}>
+            <form onSubmit={merchantLoginForm.handleSubmit(onMerchantLoginSubmit)} className="space-y-4">
+              <FormField
+                control={merchantLoginForm.control}
+                name="businessName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Business Name</FormLabel>
+                    <div className="relative">
+                      <FormControl>
+                        <Input
+                          placeholder="Your business name"
+                          {...field}
+                          className="pl-10"
+                        />
+                      </FormControl>
+                      <Store className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               
-              <button
-                type="button"
-                onClick={() => setShowMerchantFields(false)}
-                className="text-sm text-primary underline text-center"
-              >
-                Go back to regular login
-              </button>
-            </div>
-          </form>
-        </Form>
-      )}
-    </>
+              <FormField
+                control={merchantLoginForm.control}
+                name="businessEmail"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Business Email</FormLabel>
+                    <div className="relative">
+                      <FormControl>
+                        <Input
+                          placeholder="business@example.com"
+                          {...field}
+                          className="pl-10"
+                          type="email"
+                          autoComplete="email"
+                        />
+                      </FormControl>
+                      <Mail className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={merchantLoginForm.control}
+                name="businessPhone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Business Phone</FormLabel>
+                    <div className="relative">
+                      <FormControl>
+                        <Input
+                          placeholder="(123) 456-7890"
+                          {...field}
+                          className="pl-10"
+                          type="tel"
+                        />
+                      </FormControl>
+                      <Phone className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={merchantLoginForm.control}
+                name="businessAddress"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Business Address</FormLabel>
+                    <div className="relative">
+                      <FormControl>
+                        <Input
+                          placeholder="Your business address"
+                          {...field}
+                          className="pl-10"
+                        />
+                      </FormControl>
+                      <Store className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={merchantLoginForm.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Password</FormLabel>
+                    <div className="relative">
+                      <FormControl>
+                        <Input
+                          type="password"
+                          placeholder="••••••••"
+                          {...field}
+                          className="pl-10"
+                          autoComplete="current-password"
+                        />
+                      </FormControl>
+                      <Lock className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <div className="flex flex-col space-y-3 mt-6">
+                <AnimatedButton
+                  variant="gradient"
+                  type="submit"
+                  className="w-full"
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Signing in...' : 'Sign In as Merchant'}
+                </AnimatedButton>
+                
+                <button
+                  type="button"
+                  onClick={() => setShowForgotPassword(true)}
+                  className="text-sm text-primary underline text-center"
+                >
+                  Forgot password?
+                </button>
+                
+                <button
+                  type="button"
+                  onClick={() => setShowMerchantFields(false)}
+                  className="text-sm text-primary underline text-center"
+                >
+                  Go back to regular login
+                </button>
+              </div>
+            </form>
+          </Form>
+        )}
+      </TabsContent>
+      
+      <TabsContent value="phone">
+        <PhoneAuth />
+      </TabsContent>
+    </Tabs>
   );
 };
 

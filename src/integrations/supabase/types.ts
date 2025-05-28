@@ -452,47 +452,6 @@ export type Database = {
           },
         ]
       }
-      worker_unavailability: {
-        Row: {
-          created_at: string
-          date: string
-          end_time: string
-          id: string
-          reason: string | null
-          start_time: string
-          updated_at: string
-          worker_id: string
-        }
-        Insert: {
-          created_at?: string
-          date: string
-          end_time: string
-          id?: string
-          reason?: string | null
-          start_time: string
-          updated_at?: string
-          worker_id: string
-        }
-        Update: {
-          created_at?: string
-          date?: string
-          end_time?: string
-          id?: string
-          reason?: string | null
-          start_time?: string
-          updated_at?: string
-          worker_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "worker_unavailability_worker_id_fkey"
-            columns: ["worker_id"]
-            isOneToOne: false
-            referencedRelation: "workers"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       workers: {
         Row: {
           created_at: string
