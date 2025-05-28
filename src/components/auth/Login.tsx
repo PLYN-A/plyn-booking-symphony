@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -245,6 +246,8 @@ const Login = () => {
                       placeholder="your@email.com"
                       {...field}
                       className="pl-10"
+                      type="email"
+                      autoComplete="email"
                     />
                   </FormControl>
                   <Mail className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
@@ -294,6 +297,8 @@ const Login = () => {
                         placeholder="your@email.com"
                         {...field}
                         className="pl-10"
+                        type="email"
+                        autoComplete="email"
                       />
                     </FormControl>
                     <Mail className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
@@ -316,6 +321,7 @@ const Login = () => {
                         placeholder="••••••••"
                         {...field}
                         className="pl-10"
+                        autoComplete="current-password"
                       />
                     </FormControl>
                     <Lock className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
@@ -409,6 +415,8 @@ const Login = () => {
                         placeholder="business@example.com"
                         {...field}
                         className="pl-10"
+                        type="email"
+                        autoComplete="email"
                       />
                     </FormControl>
                     <Mail className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
@@ -430,6 +438,7 @@ const Login = () => {
                         placeholder="(123) 456-7890"
                         {...field}
                         className="pl-10"
+                        type="tel"
                       />
                     </FormControl>
                     <Phone className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
@@ -452,6 +461,7 @@ const Login = () => {
                         placeholder="••••••••"
                         {...field}
                         className="pl-10"
+                        autoComplete="current-password"
                       />
                     </FormControl>
                     <Lock className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
