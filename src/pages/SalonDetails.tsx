@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -10,11 +9,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MapPin, Phone, Mail, Star, ChevronLeft } from 'lucide-react';
 import BookingForm from '@/components/booking/BookingForm';
 import PageTransition from '@/components/transitions/PageTransition';
+import FavoriteButton from '@/components/ui/FavoriteButton';
+import { useFavorites } from '@/hooks/useFavorites';
 
 const SalonDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isFavorite, toggleFavorite } = useFavorites();
   
   const [salon, setSalon] = useState<any>(null);
   const [services, setServices] = useState<any[]>([]);
@@ -63,14 +65,11 @@ const SalonDetails = () => {
   };
   
   const handleServiceSelect = (service: any) => {
-    // Check if service is already selected
     const serviceIndex = selectedServices.findIndex(s => s.id === service.id);
     
     if (serviceIndex >= 0) {
-      // If already selected, remove it
       setSelectedServices(prev => prev.filter(s => s.id !== service.id));
     } else {
-      // If not selected, add it
       setSelectedServices(prev => [...prev, service]);
     }
   };
@@ -88,7 +87,6 @@ const SalonDetails = () => {
     setActiveTab('booking');
   };
   
-  // Calculate total price and duration from selected services
   const totalPrice = selectedServices.reduce((sum, service) => sum + (service.price || 0), 0);
   const totalDuration = selectedServices.reduce((sum, service) => sum + (service.duration || 0), 0);
   
@@ -134,11 +132,20 @@ const SalonDetails = () => {
             >
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-2xl">{salon.business_name}</CardTitle>
-                  <CardDescription className="flex items-center">
-                    <MapPin className="h-4 w-4 mr-1" />
-                    {salon.business_address}
-                  </CardDescription>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-2xl">{salon.business_name}</CardTitle>
+                      <CardDescription className="flex items-center">
+                        <MapPin className="h-4 w-4 mr-1" />
+                        {salon.business_address}
+                      </CardDescription>
+                    </div>
+                    <FavoriteButton
+                      isFavorite={isFavorite(salon.id)}
+                      onToggle={() => toggleFavorite(salon.id)}
+                      size="md"
+                    />
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">

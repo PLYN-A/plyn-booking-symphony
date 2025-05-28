@@ -81,24 +81,10 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "bookings_merchant_id_fkey"
-            columns: ["merchant_id"]
-            isOneToOne: false
-            referencedRelation: "merchants"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "bookings_payment_id_fkey"
             columns: ["payment_id"]
             isOneToOne: false
             referencedRelation: "payments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bookings_salon_id_fkey"
-            columns: ["salon_id"]
-            isOneToOne: false
-            referencedRelation: "merchants"
             referencedColumns: ["id"]
           },
           {
@@ -116,6 +102,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      favorites: {
+        Row: {
+          created_at: string
+          id: string
+          salon_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          salon_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          salon_id?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       merchant_settings: {
         Row: {
@@ -205,58 +212,50 @@ export type Database = {
           working_hours_end?: string
           working_hours_start?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "merchant_settings_merchant_id_fkey"
-            columns: ["merchant_id"]
-            isOneToOne: true
-            referencedRelation: "merchants"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       merchants: {
         Row: {
-          business_address: string
-          business_email: string
-          business_name: string
-          business_phone: string
-          created_at: string
+          business_address: string | null
+          business_email: string | null
+          business_name: string | null
+          business_phone: number | null
+          created_at: string | null
           id: string
           latitude: number | null
           longitude: number | null
           razorpay_id: string | null
-          service_category: string
-          status: string
-          updated_at: string
+          service_category: string | null
+          status: string | null
+          updated_at: string | null
         }
         Insert: {
-          business_address: string
-          business_email: string
-          business_name: string
-          business_phone: string
-          created_at?: string
-          id?: string
+          business_address?: string | null
+          business_email?: string | null
+          business_name?: string | null
+          business_phone?: number | null
+          created_at?: string | null
+          id: string
           latitude?: number | null
           longitude?: number | null
           razorpay_id?: string | null
-          service_category: string
-          status?: string
-          updated_at?: string
+          service_category?: string | null
+          status?: string | null
+          updated_at?: string | null
         }
         Update: {
-          business_address?: string
-          business_email?: string
-          business_name?: string
-          business_phone?: string
-          created_at?: string
+          business_address?: string | null
+          business_email?: string | null
+          business_name?: string | null
+          business_phone?: number | null
+          created_at?: string | null
           id?: string
           latitude?: number | null
           longitude?: number | null
           razorpay_id?: string | null
-          service_category?: string
-          status?: string
-          updated_at?: string
+          service_category?: string | null
+          status?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -318,13 +317,6 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "bookings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "payments_merchant_id_fkey"
-            columns: ["merchant_id"]
-            isOneToOne: false
-            referencedRelation: "merchants"
             referencedColumns: ["id"]
           },
         ]
@@ -452,20 +444,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "slots_merchant_id_fkey"
-            columns: ["merchant_id"]
-            isOneToOne: false
-            referencedRelation: "merchants"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "slots_salon_id_fkey"
-            columns: ["salon_id"]
-            isOneToOne: false
-            referencedRelation: "merchants"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "slots_worker_id_fkey"
             columns: ["worker_id"]
             isOneToOne: false
@@ -546,15 +524,7 @@ export type Database = {
           specialty?: string | null
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "workers_merchant_id_fkey"
-            columns: ["merchant_id"]
-            isOneToOne: false
-            referencedRelation: "merchants"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Views: {

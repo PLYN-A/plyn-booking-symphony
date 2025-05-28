@@ -1,20 +1,21 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { supabase } from '@/integrations/supabase/client'; // Added this import
+import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { CalendarIcon, CreditCard, HelpCircle, LogOut, Settings, Store } from 'lucide-react';
+import { CalendarIcon, CreditCard, HelpCircle, LogOut, Settings, Store, Heart } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getUserCoins, getUserProfile } from '@/utils/userUtils';
+import { useFavorites } from '@/hooks/useFavorites';
 import PageTransition from '@/components/transitions/PageTransition';
 
 const Profile = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { favorites } = useFavorites();
   const [coins, setCoins] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
@@ -123,6 +124,10 @@ const Profile = () => {
                 <Button variant="ghost" className="justify-start" onClick={() => navigate('/my-bookings')}>
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   My Bookings
+                </Button>
+                <Button variant="ghost" className="justify-start">
+                  <Heart className="mr-2 h-4 w-4" />
+                  My Favorites ({favorites.length})
                 </Button>
                 {isMerchant ? (
                   <Button variant="ghost" className="justify-start" onClick={() => navigate('/merchant-dashboard')}>
