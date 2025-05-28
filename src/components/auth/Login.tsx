@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -27,11 +26,17 @@ const merchantSchema = z.object({
   password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
+const forgotPasswordSchema = z.object({
+  email: z.string().email('Please enter a valid email address'),
+});
+
 type LoginFormValues = z.infer<typeof loginSchema>;
 type MerchantLoginFormValues = z.infer<typeof merchantSchema>;
+type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
 
 const Login = () => {
   const [showMerchantFields, setShowMerchantFields] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { signIn } = useAuth();
   const navigate = useNavigate();
@@ -54,6 +59,13 @@ const Login = () => {
       businessPhone: '',
       businessEmail: '',
       password: '',
+    },
+  });
+
+  const forgotPasswordForm = useForm<ForgotPasswordFormValues>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: {
+      email: '',
     },
   });
 
@@ -181,6 +193,90 @@ const Login = () => {
     }
   };
 
+  const onForgotPasswordSubmit = async (values: ForgotPasswordFormValues) => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(values.email, {
+        redirectTo: `${window.location.origin}/auth?reset=true`,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Password reset email sent",
+        description: "Check your email for password reset instructions.",
+      });
+
+      setShowForgotPassword(false);
+      forgotPasswordForm.reset();
+    } catch (error: any) {
+      toast({
+        title: "Password reset failed",
+        description: error.message || "Failed to send password reset email",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (showForgotPassword) {
+    return (
+      <Form {...forgotPasswordForm}>
+        <form onSubmit={forgotPasswordForm.handleSubmit(onForgotPasswordSubmit)} className="space-y-4">
+          <div className="text-center mb-4">
+            <h3 className="text-lg font-semibold">Reset Password</h3>
+            <p className="text-sm text-muted-foreground">
+              Enter your email address and we'll send you a password reset link.
+            </p>
+          </div>
+          
+          <FormField
+            control={forgotPasswordForm.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email</FormLabel>
+                <div className="relative">
+                  <FormControl>
+                    <Input
+                      placeholder="your@email.com"
+                      {...field}
+                      className="pl-10"
+                    />
+                  </FormControl>
+                  <Mail className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <div className="flex flex-col space-y-3 mt-6">
+            <AnimatedButton
+              variant="gradient"
+              type="submit"
+              className="w-full"
+              disabled={isLoading}
+            >
+              {isLoading ? 'Sending...' : 'Send Reset Link'}
+            </AnimatedButton>
+            
+            <button
+              type="button"
+              onClick={() => setShowForgotPassword(false)}
+              className="text-sm text-primary underline text-center"
+            >
+              Back to login
+            </button>
+          </div>
+        </form>
+      </Form>
+    );
+  }
+
   return (
     <>
       {!showMerchantFields ? (
@@ -258,6 +354,14 @@ const Login = () => {
               >
                 {isLoading ? 'Signing in...' : 'Sign In'}
               </AnimatedButton>
+              
+              <button
+                type="button"
+                onClick={() => setShowForgotPassword(true)}
+                className="text-sm text-primary underline text-center"
+              >
+                Forgot password?
+              </button>
               
               <button
                 type="button"
@@ -366,6 +470,14 @@ const Login = () => {
               >
                 {isLoading ? 'Signing in...' : 'Sign In as Merchant'}
               </AnimatedButton>
+              
+              <button
+                type="button"
+                onClick={() => setShowForgotPassword(true)}
+                className="text-sm text-primary underline text-center"
+              >
+                Forgot password?
+              </button>
               
               <button
                 type="button"
