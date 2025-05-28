@@ -76,11 +76,11 @@ export interface MerchantData {
 
 export interface Service {
   id: string;
-  merchant_id: string;
   name: string;
   description: string;
   price: number;
   duration: number;
+  merchant_id: string;
   created_at: string;
   updated_at: string;
 }

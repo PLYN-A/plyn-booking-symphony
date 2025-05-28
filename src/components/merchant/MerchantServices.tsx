@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,7 +37,7 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { Service } from '@/types/admin';
 
-const staticCategories = [
+const staticServices = [
   {
     name: "Hair & styling",
     gender: "unisex",
@@ -88,11 +89,8 @@ const staticCategories = [
 ];
 
 const serviceFormSchema = z.object({
-  name: z.string().min(2, {
-    message: "Service name must be at least 2 characters.",
-  }),
-  category: z.string().min(1, {
-    message: "Please select a category.",
+  name: z.string().min(1, {
+    message: "Please select a service.",
   }),
   description: z.string().min(5, {
     message: "Description must be at least 5 characters.",
@@ -120,7 +118,6 @@ const MerchantServices: React.FC<MerchantServicesProps> = ({ merchantId }) => {
     resolver: zodResolver(serviceFormSchema),
     defaultValues: {
       name: "",
-      category: "",
       description: "",
       price: "",
       duration: "30",
@@ -135,7 +132,6 @@ const MerchantServices: React.FC<MerchantServicesProps> = ({ merchantId }) => {
     if (editingService) {
       form.reset({
         name: editingService.name,
-        category: editingService.category || "",
         description: editingService.description,
         price: editingService.price.toString(),
         duration: editingService.duration.toString(),
@@ -143,7 +139,6 @@ const MerchantServices: React.FC<MerchantServicesProps> = ({ merchantId }) => {
     } else {
       form.reset({
         name: "",
-        category: "",
         description: "",
         price: "",
         duration: "30",
@@ -181,7 +176,6 @@ const MerchantServices: React.FC<MerchantServicesProps> = ({ merchantId }) => {
     try {
       const serviceData = {
         name: values.name,
-        category: values.category,
         description: values.description,
         price: parseFloat(values.price),
         duration: parseInt(values.duration),
@@ -288,30 +282,17 @@ const MerchantServices: React.FC<MerchantServicesProps> = ({ merchantId }) => {
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Service Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Haircut" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="category"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Category</FormLabel>
+                      <FormLabel>Service Type</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select a category" />
+                            <SelectValue placeholder="Select a service type" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {staticCategories.map((category) => (
-                            <SelectItem key={category.name} value={category.name}>
-                              {category.name} ({category.gender})
+                          {staticServices.map((service) => (
+                            <SelectItem key={service.name} value={service.name}>
+                              {service.name} ({service.gender})
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -399,12 +380,6 @@ const MerchantServices: React.FC<MerchantServicesProps> = ({ merchantId }) => {
               <CardHeader className="pb-2">
                 <CardTitle className="text-xl">{service.name}</CardTitle>
                 <CardDescription className="text-sm text-muted-foreground">
-                  {service.category && (
-                    <span className="inline-block bg-primary/10 text-primary px-2 py-1 rounded-md text-xs mb-1">
-                      {service.category}
-                    </span>
-                  )}
-                  <br />
                   {service.description}
                 </CardDescription>
               </CardHeader>
