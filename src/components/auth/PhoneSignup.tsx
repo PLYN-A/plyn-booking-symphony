@@ -183,6 +183,7 @@ const PhoneSignup = () => {
                       maxLength={6}
                       value={field.value}
                       onChange={field.onChange}
+                      autoComplete="one-time-code"
                     >
                       <InputOTPGroup>
                         <InputOTPSlot index={0} />
@@ -247,6 +248,7 @@ const PhoneSignup = () => {
                     placeholder="johndoe"
                     {...field}
                     className="pl-10"
+                    autoComplete="username"
                   />
                 </FormControl>
                 <User className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
@@ -269,6 +271,7 @@ const PhoneSignup = () => {
                     {...field}
                     className="pl-10"
                     type="tel"
+                    autoComplete="tel"
                   />
                 </FormControl>
                 <Phone className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
