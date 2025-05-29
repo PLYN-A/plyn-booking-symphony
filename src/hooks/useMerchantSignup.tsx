@@ -90,8 +90,10 @@ export const useMerchantSignup = () => {
     }
   }, [user, userProfile]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e: React.FormEvent | any) => {
+    if (e?.preventDefault) {
+      e.preventDefault();
+    }
     
     if (!user) {
       toast({
@@ -110,7 +112,7 @@ export const useMerchantSignup = () => {
         id: user.id,
         business_name: formData.businessName,
         business_address: formData.address,
-        business_phone: formData.phone,
+        business_phone: parseInt(formData.phone) || null,
         business_email: formData.email || user.email,
         service_category: formData.salonType
       });
@@ -137,7 +139,7 @@ export const useMerchantSignup = () => {
           .update({
             business_name: formData.businessName,
             business_address: formData.address,
-            business_phone: formData.phone,
+            business_phone: parseInt(formData.phone) || null,
             business_email: formData.email || user.email,
             service_category: formData.salonType
           })
@@ -152,7 +154,7 @@ export const useMerchantSignup = () => {
             id: user.id,
             business_name: formData.businessName,
             business_address: formData.address,
-            business_phone: formData.phone,
+            business_phone: parseInt(formData.phone) || null,
             business_email: formData.email || user.email,
             service_category: formData.salonType
           })
@@ -205,5 +207,7 @@ export const useMerchantSignup = () => {
     prevStep,
     checkMerchantProfile,
     handleSubmit,
+    loading: isSubmitting,
+    error: null
   };
 };

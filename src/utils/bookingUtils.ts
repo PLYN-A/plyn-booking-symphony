@@ -1,160 +1,86 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { createSlot } from './slotUtils';
 
-export const fetchUserBookings = async (userId: string) => {
+interface SlotAvailabilityResult {
+  available: boolean;
+  slotId?: string;
+  workerId?: string;
+  workerName?: string;
+}
+
+export const checkSlotAvailability = async (
+  salonId: string,
+  date: string,
+  time: string,
+  duration: number
+): Promise<SlotAvailabilityResult> => {
   try {
-    // First get the bookings
-    const { data: bookings, error } = await supabase
-      .from('bookings')
-      .select('*, payments(payment_status)')
-      .eq('user_id', userId)
-      .order('booking_date', { ascending: false });
+    console.log(`Checking slot availability for salon ${salonId} on ${date} at ${time}`);
 
-    if (error) throw error;
-
-    if (!bookings || bookings.length === 0) return [];
-
-    // For each booking, get the slot to get the end time
-    const bookingsWithEndTimes = await Promise.all(bookings.map(async (booking) => {
-      if (booking.slot_id) {
-        const { data: slotData } = await supabase
-          .from('slots')
-          .select('end_time')
-          .eq('id', booking.slot_id)
-          .single();
-
-        return {
-          ...booking,
-          end_time: slotData?.end_time || null
-        };
-      }
-      return booking;
-    }));
-
-    return bookingsWithEndTimes;
-  } catch (error) {
-    console.error("Error fetching user bookings:", error);
-    throw error;
-  }
-};
-
-export const cancelBookingAndRefund = async (bookingId: string) => {
-  try {
-    // Get the booking details
-    const { data: booking, error: bookingError } = await supabase
-      .from('bookings')
-      .select('user_id, service_price, coins_used')
-      .eq('id', bookingId)
-      .single();
-
-    if (bookingError) {
-      console.error('Error fetching booking:', bookingError);
-      throw new Error('Failed to fetch booking details.');
-    }
-
-    if (!booking) {
-      throw new Error('Booking not found.');
-    }
-
-    // Cancel the booking
-    const { error: cancelError } = await supabase
-      .from('bookings')
-      .update({ status: 'cancelled' })
-      .eq('id', bookingId);
-
-    if (cancelError) {
-      console.error('Error cancelling booking:', cancelError);
-      throw new Error('Failed to cancel the booking.');
-    }
-
-    // Refund PLYN coins if used
-    if (booking.coins_used && booking.coins_used > 0) {
-      const refundAmount = booking.coins_used;
-
-      // Get the current user's profile
-      const { data: userProfile, error: profileError } = await supabase
-        .from('profiles')
-        .select('coins')
-        .eq('id', booking.user_id)
-        .single();
-
-      if (profileError) {
-        console.error('Error fetching user profile:', profileError);
-        throw new Error('Failed to fetch user profile.');
-      }
-
-      if (!userProfile) {
-        throw new Error('User profile not found.');
-      }
-
-      // Update the user's coin balance
-      const newCoinBalance = (userProfile.coins || 0) + refundAmount;
-
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ coins: newCoinBalance })
-        .eq('id', booking.user_id);
-
-      if (updateError) {
-        console.error('Error updating user coins:', updateError);
-        throw new Error('Failed to refund PLYN coins.');
-      }
-    }
-
-    return { success: true, message: 'Booking cancelled and coins refunded successfully.' };
-  } catch (error: any) {
-    console.error('Error cancelling booking and refunding:', error);
-    return { success: false, message: error.message || 'Failed to cancel booking and refund.' };
-  }
-};
-
-// Add the missing functions needed by BookingForm.tsx and Payment.tsx
-export const checkSlotAvailability = async (slotId: string) => {
-  try {
-    const { data, error } = await supabase
+    // Check if there's an existing available slot
+    const { data: existingSlots, error } = await supabase
       .from('slots')
-      .select('is_booked')
-      .eq('id', slotId)
-      .single();
+      .select('*')
+      .eq('salon_id', salonId)
+      .eq('date', date)
+      .eq('start_time', time)
+      .eq('is_booked', false);
+
+    if (error) {
+      console.error('Error checking existing slots:', error);
+      throw error;
+    }
+
+    if (existingSlots && existingSlots.length > 0) {
+      const slot = existingSlots[0];
+      console.log(`Found existing available slot: ${slot.id}`);
+      return {
+        available: true,
+        slotId: slot.id,
+        workerId: slot.worker_id,
+        workerName: 'Available Worker'
+      };
+    }
+
+    // If no existing slot, try to create a new one
+    console.log('No existing slot found, attempting to create new slot');
+    const newSlotId = await createSlot(salonId, date, time, duration);
     
-    if (error) throw error;
-    
-    return !data.is_booked;
+    if (newSlotId) {
+      console.log(`Created new slot: ${newSlotId}`);
+      return {
+        available: true,
+        slotId: newSlotId,
+        workerId: undefined,
+        workerName: 'Available Worker'
+      };
+    }
+
+    console.log('No slot could be created');
+    return { available: false };
+
   } catch (error) {
-    console.error('Error checking slot availability:', error);
-    throw error;
+    console.error('Error in checkSlotAvailability:', error);
+    return { available: false };
   }
 };
 
-export const bookSlot = async (slotId: string) => {
+export const bookSlot = async (slotId: string): Promise<boolean> => {
   try {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('slots')
       .update({ is_booked: true })
-      .eq('id', slotId)
-      .select();
-    
-    if (error) throw error;
-    
-    return data;
-  } catch (error) {
-    console.error('Error booking slot:', error);
-    throw error;
-  }
-};
+      .eq('id', slotId);
 
-export const createBooking = async (bookingData: any) => {
-  try {
-    const { data, error } = await supabase
-      .from('bookings')
-      .insert(bookingData)
-      .select();
-    
-    if (error) throw error;
-    
-    return data[0];
+    if (error) {
+      console.error('Error booking slot:', error);
+      return false;
+    }
+
+    return true;
   } catch (error) {
-    console.error('Error creating booking:', error);
-    throw error;
+    console.error('Error in bookSlot:', error);
+    return false;
   }
 };
