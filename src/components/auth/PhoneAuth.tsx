@@ -151,7 +151,9 @@ const PhoneAuth = () => {
                       maxLength={6}
                       value={field.value}
                       onChange={field.onChange}
-                      autoComplete="one-time-code"
+                      autoComplete="off"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                     >
                       <InputOTPGroup>
                         <InputOTPSlot index={0} />
