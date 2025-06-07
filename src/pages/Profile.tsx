@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -10,7 +11,6 @@ import { useToast } from '@/hooks/use-toast';
 import { getUserCoins, getUserProfile } from '@/utils/userUtils';
 import { useFavorites } from '@/hooks/useFavorites';
 import PageTransition from '@/components/transitions/PageTransition';
-import DeleteAccountDialog from '@/components/profile/DeleteAccountDialog';
 
 const Profile = () => {
   const { user, signOut } = useAuth();
@@ -21,7 +21,6 @@ const Profile = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
   const [isMerchant, setIsMerchant] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   
   useEffect(() => {
     const fetchProfileData = async () => {
@@ -153,7 +152,7 @@ const Profile = () => {
                   <Button 
                     variant="outline" 
                     className="justify-start border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                    onClick={() => setShowDeleteDialog(true)}
+                    onClick={() => navigate('/delete-account')}
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
                     Delete Account
@@ -164,11 +163,6 @@ const Profile = () => {
           </CardContent>
         </Card>
       </div>
-
-      <DeleteAccountDialog 
-        open={showDeleteDialog}
-        onOpenChange={setShowDeleteDialog}
-      />
     </PageTransition>
   );
 };
