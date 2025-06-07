@@ -5,11 +5,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { CalendarIcon, CreditCard, HelpCircle, LogOut, Settings, Store, Heart } from 'lucide-react';
+import { CalendarIcon, CreditCard, HelpCircle, LogOut, Settings, Store, Heart, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getUserCoins, getUserProfile } from '@/utils/userUtils';
 import { useFavorites } from '@/hooks/useFavorites';
 import PageTransition from '@/components/transitions/PageTransition';
+import DeleteAccountDialog from '@/components/profile/DeleteAccountDialog';
 
 const Profile = () => {
   const { user, signOut } = useAuth();
@@ -20,6 +21,7 @@ const Profile = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
   const [isMerchant, setIsMerchant] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   
   useEffect(() => {
     const fetchProfileData = async () => {
@@ -144,11 +146,29 @@ const Profile = () => {
                   <HelpCircle className="mr-2 h-4 w-4" />
                   Help & Support
                 </Button>
+                
+                {/* Danger Zone */}
+                <div className="border-t pt-4 mt-4">
+                  <p className="text-lg font-semibold text-destructive mb-2">Danger Zone</p>
+                  <Button 
+                    variant="outline" 
+                    className="justify-start border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                    onClick={() => setShowDeleteDialog(true)}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete Account
+                  </Button>
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
+
+      <DeleteAccountDialog 
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+      />
     </PageTransition>
   );
 };
